@@ -11,16 +11,23 @@ export async function POST(req: Request) {
 
     if (action === "send") {
       let userInDb = await prisma.user.findUnique({ where: { email: cleanEmail } });
-      
-      if (!userInDb) {
+      const isAdmin = cleanEmail === "adminfightlab@gmail.com" || cleanEmail === "juniortovar601@gmail.com";
+
+      // Solo creamos al usuario si es Admin. Los demás deben estar ya registrados.
+      if (!userInDb && isAdmin) {
         userInDb = await prisma.user.create({
           data: {
-            name: cleanEmail.split('@')[0],
+            name: "Admin",
             email: cleanEmail,
-            role: (cleanEmail === 'juniortovar601@gmail.com' || cleanEmail === 'adminfightlab@gmail.com') ? 'admin' : 'alumno',
-            status: 'Activo'
+            role: "admin",
+            status: "Activo"
           }
         });
+      }
+
+      // Si no existe y no es admin, bloqueamos el acceso (Error 404)
+      if (!userInDb) {
+        return NextResponse.json({ error: "El correo no está registrado en la lista de alumnos autorizados." }, { status: 404 });
       }
 
       const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -30,26 +37,28 @@ export async function POST(req: Request) {
         data: { otpCode: generatedCode }
       });
 
-      // ENVÍO POR API DE RESEND (Instantáneo en Render)
-      const resendKey = process.env.RESEND_API_KEY;
+      // ENVÍO POR API DE RESEND (Garantizado)
+      const resendKey = process.env.RESEND_API_KEY || "re_9J3Dw1Qr_4pFE2GUTfE2NuZYTJgAToc4S";
       
-      if (resendKey) {
-        await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${resendKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            from: 'FightLab <onboarding@resend.dev>',
-            to: cleanEmail,
-            subject: `${generatedCode} es tu código de acceso`,
-            html: `<h1>FIGHTLAB</h1><p>Tu código de acceso es: <strong>${generatedCode}</strong></p>`
-          })
-        });
-      }
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: 'FightLab <onboarding@resend.dev>',
+          to: cleanEmail,
+          subject: `${generatedCode} es tu código de acceso`,
+          html: `<div style="background:#000;color:#fff;padding:40px;border:1px solid #D4AF37;text-align:center;border-radius:20px;font-family:sans-serif;">
+                  <h1 style="color:#D4AF37;margin-bottom:20px;">FIGHTLAB</h1>
+                  <p style="font-size:16px;">Tu código de acceso es:</p>
+                  <h2 style="font-size:48px;color:#D4AF37;letter-spacing:10px;margin:20px 0;">${generatedCode}</h2>
+                  <p style="color:#666;font-size:12px;margin-top:20px;">Si no solicitaste este código, ignora este correo.</p>
+                </div>`
+        })
+      });
 
-      console.log(`[AUTH] Código para ${cleanEmail}: ${generatedCode}`);
       return NextResponse.json({ success: true });
     }
 
