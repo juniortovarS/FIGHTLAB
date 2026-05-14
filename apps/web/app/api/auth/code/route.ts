@@ -4,13 +4,13 @@ import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
+  port: 587,
+  secure: false, // true para 465, false para otros puertos
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_PASS,
   },
-  connectionTimeout: 10000, // 10 segundos máximo
+  connectionTimeout: 15000, // 15 segundos
 });
 
 const codesStore = new Map<string, string>();
