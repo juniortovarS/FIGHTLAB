@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-// En Prisma 6, la conexión nativa es automática usando DATABASE_URL del .env
+// En Prisma 7 con conexión nativa (sin prisma.config.ts)
 export const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
