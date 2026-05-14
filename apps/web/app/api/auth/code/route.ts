@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-const resend = new Resend(process.env.RESEND_API_KEY || "no-key");
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_PASS,
+  },
+});
+
 const codesStore = new Map<string, string>();
 
 export async function POST(req: Request) {
@@ -15,48 +22,42 @@ export async function POST(req: Request) {
 
     if (action === "send") {
       let userInDb = null;
-      let dbErrorOccurred = false;
 
       try {
-        // Find user and explicitly log it
         userInDb = await prisma.user.findUnique({ where: { email: cleanEmail } });
       } catch (dbError: any) {
         console.error("CRITICAL DB ERROR:", dbError.message);
-        return NextResponse.json({ error: `Error MySQL: ${dbError.message}. Revisa que tu servidor MySQL esté encendido.` }, { status: 500 });
+        return NextResponse.json({ error: `Error DB: ${dbError.message}` }, { status: 500 });
       }
 
       const isAdmin = cleanEmail === "adminfightlab@gmail.com" || cleanEmail === "admin@fightlab.ai";
-      
 
       if (!userInDb && !isAdmin) {
         return NextResponse.json({ error: `El correo '${cleanEmail}' no existe en la lista de usuarios autorizados.` }, { status: 404 });
       }
 
-      // 2. Generate Code
       const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
       codesStore.set(cleanEmail, generatedCode);
 
-      // 3. Send Email
-      if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.includes("tu_llave")) {
-        return NextResponse.json({ error: "Falta la RESEND_API_KEY en .env.local" }, { status: 500 });
+      if (!process.env.GMAIL_USER || !process.env.GMAIL_PASS) {
+        return NextResponse.json({ error: "Falta configuración de GMAIL (GMAIL_USER/GMAIL_PASS)" }, { status: 500 });
       }
 
       try {
-        const emailResult = await resend.emails.send({
-          from: "FightLab <onboarding@resend.dev>",
+        await transporter.sendMail({
+          from: `"FightLab" <${process.env.GMAIL_USER}>`,
           to: cleanEmail,
           subject: `${generatedCode} es tu código de FightLab`,
-          html: `<div style="background:#000;color:#fff;padding:40px;border:1px solid #D4AF37;text-align:center;border-radius:20px;">
-                  <h1 style="color:#D4AF37;">FIGHTLAB</h1>
-                  <p>Código de acceso:</p>
-                  <h2 style="font-size:40px;color:#D4AF37;letter-spacing:5px;">${generatedCode}</h2>
+          html: `<div style="background:#000;color:#fff;padding:40px;border:1px solid #D4AF37;text-align:center;border-radius:20px;font-family:sans-serif;">
+                  <h1 style="color:#D4AF37;margin-bottom:20px;">FIGHTLAB</h1>
+                  <p style="font-size:16px;">Tu código de acceso es:</p>
+                  <h2 style="font-size:48px;color:#D4AF37;letter-spacing:10px;margin:20px 0;">${generatedCode}</h2>
+                  <p style="color:#666;font-size:12px;margin-top:20px;">Si no solicitaste este código, ignora este correo.</p>
                 </div>`,
         });
-
-        if (emailResult.error) throw new Error(emailResult.error.message);
       } catch (err: any) {
-        console.error("EMAIL SEND ERROR:", err);
-        return NextResponse.json({ error: `Error de envío: ${err.message}. Prueba enviarlo a tu propio correo de Resend.` }, { status: 500 });
+        console.error("GMAIL SEND ERROR:", err);
+        return NextResponse.json({ error: `Error de envío Gmail: ${err.message}` }, { status: 500 });
       }
 
       return NextResponse.json({ success: true });
