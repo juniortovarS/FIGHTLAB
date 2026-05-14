@@ -37,6 +37,7 @@ export interface UserItem {
   joinDate: string;
   planActiveDate?: string;
   planExpiryDate?: string;
+  clasesDisponibles?: number;
 }
 
 export const PLANS = ["4 Clases / Mes", "8 Clases / Mes", "12 Clases / Mes", "Ilimitado", "Staff / Coach", "Administración"];
@@ -118,7 +119,8 @@ export const mockUsers: UserItem[] = [
     role: "Alumno",
     plan: "Regular",
     status: "Activo",
-    joinDate: "2024-01-15"
+    joinDate: "2024-01-15",
+    clasesDisponibles: 4
   },
   {
     id: 2,
@@ -127,7 +129,8 @@ export const mockUsers: UserItem[] = [
     role: "Coach",
     plan: "Staff — Muay Thai",
     status: "Activo",
-    joinDate: "2023-05-10"
+    joinDate: "2023-05-10",
+    clasesDisponibles: 999
   },
   {
     id: 3,
@@ -136,7 +139,8 @@ export const mockUsers: UserItem[] = [
     role: "Alumno",
     plan: "Premium",
     status: "Activo",
-    joinDate: "2024-02-20"
+    joinDate: "2024-02-20",
+    clasesDisponibles: 12
   },
   {
     id: 4,
@@ -145,7 +149,8 @@ export const mockUsers: UserItem[] = [
     role: "Coach",
     plan: "Staff — BJJ",
     status: "Activo",
-    joinDate: "2023-11-12"
+    joinDate: "2023-11-12",
+    clasesDisponibles: 999
   },
   {
     id: 5,
@@ -154,6 +159,7 @@ export const mockUsers: UserItem[] = [
     role: "Staff",
     plan: "Administración",
     status: "Activo",
-    joinDate: "2023-08-05"
+    joinDate: "2023-08-05",
+    clasesDisponibles: 999
   }
 ];

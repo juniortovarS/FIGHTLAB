@@ -23,7 +23,8 @@ export function UsuariosSection({ users, onUpdateUser, onAddUser }: UsuariosSect
     role: "Alumno" as "Alumno" | "Coach" | "Admin" | "Staff",
     plan: "Regular",
     status: "Activo" as "Activo" | "Inactivo" | "Pendiente",
-    planActiveDate: (new Date().toISOString().split('T')[0]!) as string
+    planActiveDate: (new Date().toISOString().split('T')[0]!) as string,
+    clasesDisponibles: 0
   });
 
   const filteredUsers = users.filter(u => {
@@ -40,7 +41,8 @@ export function UsuariosSection({ users, onUpdateUser, onAddUser }: UsuariosSect
       role: "Alumno",
       plan: "Regular",
       status: "Activo",
-      planActiveDate: new Date().toISOString().split('T')[0]!
+      planActiveDate: new Date().toISOString().split('T')[0]!,
+      clasesDisponibles: 0
     });
     setIsModalOpen(true);
   };
@@ -53,7 +55,8 @@ export function UsuariosSection({ users, onUpdateUser, onAddUser }: UsuariosSect
       role: user.role,
       plan: user.plan,
       status: user.status,
-      planActiveDate: user.planActiveDate || new Date().toISOString().split('T')[0]!
+      planActiveDate: user.planActiveDate || new Date().toISOString().split('T')[0]!,
+      clasesDisponibles: user.clasesDisponibles || 0
     });
     setIsModalOpen(true);
   };
@@ -291,6 +294,19 @@ export function UsuariosSection({ users, onUpdateUser, onAddUser }: UsuariosSect
                         <option value="Inactivo" className="bg-[#121212]">Inactivo</option>
                         <option value="Pendiente" className="bg-[#121212]">Pendiente</option>
                       </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Clases Disponibles</label>
+                      <div className="relative">
+                        <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                        <input 
+                          type="number" 
+                          value={formData.clasesDisponibles}
+                          onChange={e => setFormData({...formData, clasesDisponibles: parseInt(e.target.value) || 0})}
+                          className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 pl-12 text-sm focus:border-[#D4AF37]/50 outline-none transition-all text-white"
+                          placeholder="Ej: 8"
+                        />
+                      </div>
                     </div>
                   </div>
 

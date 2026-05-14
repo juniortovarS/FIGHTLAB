@@ -47,13 +47,16 @@ export default function DashboardClient({ userName, userEmail }: DashboardClient
   const completedClasses = useMemo(() => reservations.filter(r => r.status === "Finalizada").length, [reservations]);
   const activeReservationsCount = useMemo(() => reservations.filter(r => r.status === "Confirmada").length, [reservations]);
   
+  const [assignedClasses, setAssignedClasses] = useState<number | null>(null);
+
   const maxClasses = useMemo(() => {
+    if (assignedClasses !== null) return assignedClasses;
     if (currentPlan.includes("4")) return 4;
     if (currentPlan.includes("8")) return 8;
     if (currentPlan.includes("12")) return 12;
     if (currentPlan === "Ilimitado") return 999;
     return 0;
-  }, [currentPlan]);
+  }, [currentPlan, assignedClasses]);
 
   const classesLeft = useMemo(() => Math.max(0, maxClasses - activeReservationsCount), [maxClasses, activeReservationsCount]);
   const activeDisciplines = useMemo(() => new Set(reservations.map(r => r.classItem.name.split(" ")[0])).size, [reservations]);
@@ -66,7 +69,10 @@ export default function DashboardClient({ userName, userEmail }: DashboardClient
       .then(data => {
         setUsers(data);
         const me = data.find((u: any) => u.email === userEmail);
-        if (me) setCurrentPlan(me.plan);
+        if (me) {
+          setCurrentPlan(me.plan);
+          if (me.clasesDisponibles !== undefined) setAssignedClasses(me.clasesDisponibles);
+        }
       })
       .catch(err => console.error("Error fetching users:", err));
   }, [userEmail]);

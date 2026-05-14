@@ -17,6 +17,7 @@ model User {
   joinDate        DateTime @default(now())
   planActiveDate  DateTime?
   planExpiryDate  DateTime?
+  clasesDisponibles Int    @default(0)
 
   @@map("users")
 }

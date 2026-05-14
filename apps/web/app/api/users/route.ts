@@ -23,6 +23,7 @@ export async function POST(req: Request) {
     // Convert string dates to Date objects for Prisma
     const formattedData = {
       ...userData,
+      clasesDisponibles: parseInt(data.clasesDisponibles) || 0,
       joinDate: userData.joinDate ? new Date(userData.joinDate) : new Date(),
       planActiveDate: userData.planActiveDate ? new Date(userData.planActiveDate) : null,
       planExpiryDate: userData.planExpiryDate ? new Date(userData.planExpiryDate) : null,
