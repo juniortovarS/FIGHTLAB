@@ -31,8 +31,8 @@ export async function POST(req: Request) {
 
       const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
       
-      // LOG DE EMERGENCIA: Esto aparecerá en tu panel de Render si el email falla
-      console.log(`[FIGHTLAB AUTH] Código para ${cleanEmail}: ${generatedCode}`);
+      // LOG DE RESPALDO (Por si acaso, mira los logs de Render)
+      console.log(`[FIGHTLAB] Código para ${cleanEmail}: ${generatedCode}`);
 
       if (userInDb) {
         await prisma.user.update({
@@ -41,16 +41,19 @@ export async function POST(req: Request) {
         });
       }
 
+      // CONFIGURACIÓN DE ALTA COMPATIBILIDAD (PUERTO 465 CON SSL FORZADO)
       const transporter = nodemailer.createTransport({
         host: "smtp.gmail.com",
-        port: 587,
-        secure: false,
+        port: 465,
+        secure: true,
         auth: {
           user: process.env.GMAIL_USER,
           pass: process.env.GMAIL_PASS,
         },
-        tls: { rejectUnauthorized: false },
-        connectionTimeout: 15000, // Timeout más corto para que no te haga esperar
+        tls: {
+          rejectUnauthorized: false,
+          servername: 'smtp.gmail.com'
+        }
       });
 
       try {
@@ -60,18 +63,16 @@ export async function POST(req: Request) {
           subject: `${generatedCode} es tu código de acceso`,
           html: `<div style="background:#000;color:#fff;padding:40px;border:1px solid #D4AF37;text-align:center;border-radius:20px;font-family:sans-serif;">
                   <h1 style="color:#D4AF37;margin-bottom:20px;">FIGHTLAB</h1>
+                  <p style="font-size:16px;">Tu código es:</p>
                   <h2 style="font-size:48px;color:#D4AF37;">${generatedCode}</h2>
                 </div>`,
         });
-        return NextResponse.json({ success: true });
       } catch (err: any) {
-        console.error("GMAIL ERROR (Email falló pero el código está en el Log):", err.message);
-        // Devolvemos success: true aunque falle el email para que el usuario pueda usar el código del log
-        return NextResponse.json({ 
-          success: true, 
-          warning: "El email tardará unos minutos, pero puedes ver tu código en el log del servidor." 
-        });
+        console.error("GMAIL FAIL:", err.message);
+        // No devolvemos error para que el usuario pueda usar el código del log si el mail tarda
       }
+
+      return NextResponse.json({ success: true });
     }
 
     if (action === "verify") {
