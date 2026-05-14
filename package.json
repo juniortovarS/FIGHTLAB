@@ -32,6 +32,12 @@
     "@prisma/client": "^6.19.3",
     "ai": "^6.0.177",
     "next-auth": "^4.24.14",
-    "resend": "^6.12.3"
+    "resend": "^6.12.3",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "overrides": {
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
   }
 }

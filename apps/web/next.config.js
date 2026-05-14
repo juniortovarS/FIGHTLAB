@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    reactStrictMode: true,
+  // Configuración limpia para Next.js 15.1.0
+  transpilePackages: ["@repo/ui"],
 };
 
 export default nextConfig;

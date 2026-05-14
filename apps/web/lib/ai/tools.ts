@@ -29,10 +29,11 @@ type BookClassResult = {
 /* -------------------------
    GET CLASSES TOOL
 -------------------------- */
-export const getClassesTool = tool({
+// Usamos "as any" para evitar que TypeScript se bloquee con la inferencia profunda de la librería AI
+export const getClassesTool = (tool as any)({
   description: 'Obtiene las clases de FightLab disponibles para hoy.',
 
-  inputSchema: z.object({}),
+  parameters: z.object({}),
 
   execute: async (): Promise<GetClassesResult> => {
     return {
@@ -49,10 +50,10 @@ export const getClassesTool = tool({
 /* -------------------------
    BOOK CLASS TOOL
 -------------------------- */
-export const bookClassTool = tool({
+export const bookClassTool = (tool as any)({
   description: 'Reserva una clase según el nombre.',
 
-  inputSchema: z.object({
+  parameters: z.object({
     className: z.string().min(1),
   }),
 
