@@ -19,7 +19,7 @@
     "framer-motion": "^12.38.0",
     "lenis": "^1.2.0",
     "lucide-react": "^0.479.0",
-    "next": "15.1.0",
+    "next": "15.1.7",
     "next-auth": "^4.24.14",
     "nodemailer": "^6.9.16",
     "postcss": "^8.4.49",
