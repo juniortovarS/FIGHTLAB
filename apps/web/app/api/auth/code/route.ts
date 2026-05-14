@@ -6,13 +6,19 @@ const isProd = process.env.NODE_ENV === "production";
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: isProd ? 465 : 587,
-  secure: isProd, // true para 465 en Render, false para 587 en Local
+  port: 587, // Usaremos 587 para ambos pero con ajustes de seguridad distintos
+  secure: false, // STARTTLS
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_PASS,
   },
-  connectionTimeout: 40000, // 40 segundos (más margen para Render)
+  tls: {
+    rejectUnauthorized: false, // Esto ayuda a evitar bloqueos en Render
+  },
+  connectionTimeout: 60000, // 60 segundos de espera
+  greetingTimeout: 30000,
+  socketTimeout: 60000,
+  pool: isProd, // Usar pool en producción para mantener la conexión viva
 });
 
 export async function POST(req: Request) {
