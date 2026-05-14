@@ -42,19 +42,20 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Falta configuración de Gmail" }, { status: 500 });
       }
 
-      // Creamos el transporte AQUÍ ADENTRO para Render
+      // CONFIGURACIÓN ESPECÍFICA PARA RENDER (PUERTO 587 + TLS)
       const transporter = nodemailer.createTransport({
         host: "smtp.gmail.com",
-        port: 465,
-        secure: true, // SSL directo
+        port: 587,
+        secure: false, // Render bloquea el puerto 465 (secure: true)
         auth: {
           user: process.env.GMAIL_USER,
           pass: process.env.GMAIL_PASS,
         },
         tls: {
-          rejectUnauthorized: false, // Ignorar errores de proxy/red de Render
+          ciphers: 'SSLv3',
+          rejectUnauthorized: false
         },
-        connectionTimeout: 60000, // 60 segundos
+        connectionTimeout: 20000, // Menos tiempo para que no se quede colgado
       });
 
       try {
