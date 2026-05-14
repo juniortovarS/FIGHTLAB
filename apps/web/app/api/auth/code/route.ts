@@ -11,48 +11,36 @@ export async function POST(req: Request) {
     if (!cleanEmail) return NextResponse.json({ error: "Email requerido" }, { status: 400 });
 
     if (action === "send") {
+      console.log(`[AUTH] Solicitud de código para: ${cleanEmail}`);
+      
       let userInDb = await prisma.user.findUnique({ where: { email: cleanEmail } });
-      const isAdmin = cleanEmail === "adminfightlab@gmail.com" || cleanEmail === "juniortovar601@gmail.com";
-
-      if (!userInDb && isAdmin) {
+      
+      // AUTO-REGISTRO: Si el usuario no existe, lo creamos
+      if (!userInDb) {
+        console.log(`[AUTH] Creando nuevo usuario: ${cleanEmail}`);
         userInDb = await prisma.user.create({
           data: {
-            name: "Administrador",
+            name: cleanEmail.split('@')[0],
             email: cleanEmail,
-            role: "admin",
-            status: "Activo"
+            role: (cleanEmail === 'juniortovar601@gmail.com' || cleanEmail === 'adminfightlab@gmail.com') ? 'admin' : 'alumno',
+            status: 'Activo'
           }
         });
       }
 
-      if (!userInDb && !isAdmin) {
-        return NextResponse.json({ error: "Correo no autorizado." }, { status: 404 });
-      }
-
       const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
-      
-      // LOG DE RESPALDO (Por si acaso, mira los logs de Render)
-      console.log(`[FIGHTLAB] Código para ${cleanEmail}: ${generatedCode}`);
+      console.log(`[AUTH] CÓDIGO GENERADO PARA ${cleanEmail}: ${generatedCode}`);
 
-      if (userInDb) {
-        await prisma.user.update({
-          where: { email: cleanEmail },
-          data: { otpCode: generatedCode }
-        });
-      }
+      await prisma.user.update({
+        where: { email: cleanEmail },
+        data: { otpCode: generatedCode }
+      });
 
-      // CONFIGURACIÓN DE ALTA COMPATIBILIDAD (PUERTO 465 CON SSL FORZADO)
       const transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com",
-        port: 465,
-        secure: true,
+        service: "gmail",
         auth: {
           user: process.env.GMAIL_USER,
           pass: process.env.GMAIL_PASS,
-        },
-        tls: {
-          rejectUnauthorized: false,
-          servername: 'smtp.gmail.com'
         }
       });
 
@@ -62,14 +50,13 @@ export async function POST(req: Request) {
           to: cleanEmail,
           subject: `${generatedCode} es tu código de acceso`,
           html: `<div style="background:#000;color:#fff;padding:40px;border:1px solid #D4AF37;text-align:center;border-radius:20px;font-family:sans-serif;">
-                  <h1 style="color:#D4AF37;margin-bottom:20px;">FIGHTLAB</h1>
-                  <p style="font-size:16px;">Tu código es:</p>
+                  <h1 style="color:#D4AF37;">FIGHTLAB</h1>
                   <h2 style="font-size:48px;color:#D4AF37;">${generatedCode}</h2>
                 </div>`,
         });
+        console.log(`[AUTH] Email enviado a ${cleanEmail}`);
       } catch (err: any) {
-        console.error("GMAIL FAIL:", err.message);
-        // No devolvemos error para que el usuario pueda usar el código del log si el mail tarda
+        console.error("[AUTH] Error enviando email (pero el código está en log):", err.message);
       }
 
       return NextResponse.json({ success: true });
@@ -88,6 +75,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ error: "Acción no válida" }, { status: 400 });
   } catch (error: any) {
+    console.error("[AUTH] Error crítico:", error.message);
     return NextResponse.json({ error: "Error: " + error.message }, { status: 500 });
   }
 }
