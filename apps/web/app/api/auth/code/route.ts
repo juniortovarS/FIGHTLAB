@@ -2,16 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import nodemailer from "nodemailer";
 
-// Usamos la configuración simplificada 'service: gmail' que es la más robusta
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_PASS,
-  },
-  connectionTimeout: 45000,
-});
-
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -51,6 +41,21 @@ export async function POST(req: Request) {
       if (!process.env.GMAIL_USER || !process.env.GMAIL_PASS) {
         return NextResponse.json({ error: "Falta configuración de Gmail" }, { status: 500 });
       }
+
+      // Creamos el transporte AQUÍ ADENTRO para Render
+      const transporter = nodemailer.createTransport({
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true, // SSL directo
+        auth: {
+          user: process.env.GMAIL_USER,
+          pass: process.env.GMAIL_PASS,
+        },
+        tls: {
+          rejectUnauthorized: false, // Ignorar errores de proxy/red de Render
+        },
+        connectionTimeout: 60000, // 60 segundos
+      });
 
       try {
         await transporter.sendMail({
