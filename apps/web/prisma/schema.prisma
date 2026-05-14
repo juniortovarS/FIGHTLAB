@@ -18,6 +18,7 @@ model User {
   planActiveDate  DateTime?
   planExpiryDate  DateTime?
   clasesDisponibles Int    @default(0)
+  otpCode         String?  // <-- Añadimos esto para guardar el código de login
 
   @@map("users")
 }

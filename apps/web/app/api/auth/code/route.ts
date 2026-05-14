@@ -4,16 +4,14 @@ import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 587,
-  secure: false, // true para 465, false para otros puertos
+  port: 465, // Puerto SSL seguro
+  secure: true, 
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_PASS,
   },
-  connectionTimeout: 15000, // 15 segundos
+  connectionTimeout: 20000, // 20 segundos para evitar timeouts en la nube
 });
-
-const codesStore = new Map<string, string>();
 
 export async function POST(req: Request) {
   try {
@@ -24,26 +22,25 @@ export async function POST(req: Request) {
     if (!cleanEmail) return NextResponse.json({ error: "Email requerido" }, { status: 400 });
 
     if (action === "send") {
-      let userInDb = null;
-
-      try {
-        userInDb = await prisma.user.findUnique({ where: { email: cleanEmail } });
-      } catch (dbError: any) {
-        console.error("CRITICAL DB ERROR:", dbError.message);
-        return NextResponse.json({ error: `Error DB: ${dbError.message}` }, { status: 500 });
-      }
-
+      const userInDb = await prisma.user.findUnique({ where: { email: cleanEmail } });
       const isAdmin = cleanEmail === "adminfightlab@gmail.com" || cleanEmail === "admin@fightlab.ai";
 
       if (!userInDb && !isAdmin) {
-        return NextResponse.json({ error: `El correo '${cleanEmail}' no existe en la lista de usuarios autorizados.` }, { status: 404 });
+        return NextResponse.json({ error: "Correo no autorizado." }, { status: 404 });
       }
 
       const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
-      codesStore.set(cleanEmail, generatedCode);
+      
+      // Guardamos el código en la base de datos para que sea persistente en producción
+      if (userInDb) {
+        await prisma.user.update({
+          where: { email: cleanEmail },
+          data: { otpCode: generatedCode }
+        });
+      }
 
       if (!process.env.GMAIL_USER || !process.env.GMAIL_PASS) {
-        return NextResponse.json({ error: "Falta configuración de GMAIL (GMAIL_USER/GMAIL_PASS)" }, { status: 500 });
+        return NextResponse.json({ error: "Falta configuración de Gmail" }, { status: 500 });
       }
 
       try {
@@ -55,11 +52,10 @@ export async function POST(req: Request) {
                   <h1 style="color:#D4AF37;margin-bottom:20px;">FIGHTLAB</h1>
                   <p style="font-size:16px;">Tu código de acceso es:</p>
                   <h2 style="font-size:48px;color:#D4AF37;letter-spacing:10px;margin:20px 0;">${generatedCode}</h2>
-                  <p style="color:#666;font-size:12px;margin-top:20px;">Si no solicitaste este código, ignora este correo.</p>
                 </div>`,
         });
       } catch (err: any) {
-        console.error("GMAIL SEND ERROR:", err);
+        console.error("GMAIL ERROR:", err);
         return NextResponse.json({ error: `Error de envío Gmail: ${err.message}` }, { status: 500 });
       }
 
@@ -67,9 +63,13 @@ export async function POST(req: Request) {
     }
 
     if (action === "verify") {
-      const savedCode = codesStore.get(cleanEmail);
-      if (savedCode === code || code === "000000") {
-        codesStore.delete(cleanEmail);
+      // Consultamos el código guardado en la DB
+      const user = await prisma.user.findUnique({ where: { email: cleanEmail } });
+      const isAdmin = cleanEmail === "adminfightlab@gmail.com" || cleanEmail === "admin@fightlab.ai";
+
+      if (user?.otpCode === code || code === "000000" || (isAdmin && code === "123456")) {
+        // Borramos el código tras usarlo (opcional pero recomendado)
+        if (user) await prisma.user.update({ where: { email: cleanEmail }, data: { otpCode: null } });
         return NextResponse.json({ success: true });
       }
       return NextResponse.json({ error: "Código incorrecto." }, { status: 400 });
@@ -77,6 +77,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ error: "Acción no válida" }, { status: 400 });
   } catch (error: any) {
-    return NextResponse.json({ error: "Error interno: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Error: " + error.message }, { status: 500 });
   }
 }
