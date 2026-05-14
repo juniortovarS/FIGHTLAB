@@ -2,23 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import nodemailer from "nodemailer";
 
-const isProd = process.env.NODE_ENV === "production";
-
+// Usamos la configuración simplificada 'service: gmail' que es la más robusta
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587, // Usaremos 587 para ambos pero con ajustes de seguridad distintos
-  secure: false, // STARTTLS
+  service: "gmail",
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_PASS,
   },
-  tls: {
-    rejectUnauthorized: false, // Esto ayuda a evitar bloqueos en Render
-  },
-  connectionTimeout: 60000, // 60 segundos de espera
-  greetingTimeout: 30000,
-  socketTimeout: 60000,
-  pool: isProd, // Usar pool en producción para mantener la conexión viva
+  connectionTimeout: 45000,
 });
 
 export async function POST(req: Request) {
@@ -33,7 +24,6 @@ export async function POST(req: Request) {
       let userInDb = await prisma.user.findUnique({ where: { email: cleanEmail } });
       const isAdmin = cleanEmail === "adminfightlab@gmail.com" || cleanEmail === "juniortovar601@gmail.com";
 
-      // Si es Admin y no existe, lo creamos automáticamente
       if (!userInDb && isAdmin) {
         userInDb = await prisma.user.create({
           data: {
@@ -51,7 +41,6 @@ export async function POST(req: Request) {
 
       const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
       
-      // Guardamos el código en la base de datos para que sea persistente en producción
       if (userInDb) {
         await prisma.user.update({
           where: { email: cleanEmail },
@@ -83,12 +72,10 @@ export async function POST(req: Request) {
     }
 
     if (action === "verify") {
-      // Consultamos el código guardado en la DB
       const user = await prisma.user.findUnique({ where: { email: cleanEmail } });
-      const isAdmin = cleanEmail === "adminfightlab@gmail.com" || cleanEmail === "admin@fightlab.ai";
+      const isAdmin = cleanEmail === "adminfightlab@gmail.com" || cleanEmail === "juniortovar601@gmail.com";
 
       if (user?.otpCode === code || code === "000000" || (isAdmin && code === "123456")) {
-        // Borramos el código tras usarlo (opcional pero recomendado)
         if (user) await prisma.user.update({ where: { email: cleanEmail }, data: { otpCode: null } });
         return NextResponse.json({ success: true });
       }
