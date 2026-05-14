@@ -1,89 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;600;700;800;900&display=swap');
+@import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* ─── FIGHTLAB REFINED SAAS DESIGN SYSTEM ─────────── */
-:root {
-  --background: #121212; /* Slightly lighter than pure black */
-  --foreground: #FFFFFF; /* Pure white for better readability */
-  
-  --card: rgba(30, 30, 30, 0.6);
-  --card-foreground: #FFFFFF;
-  
-  --popover: #121212;
-  --popover-foreground: #FFFFFF;
-  
-  --primary: #D4AF37; /* Gold */
-  --primary-foreground: #000000;
-  
-  --secondary: #1E1E1E;
-  --secondary-foreground: #FFFFFF;
-  
-  --muted: #262626;
-  --muted-foreground: #A1A1AA;
-  
-  --accent: #FFD700; /* Brighter Gold */
-  --accent-foreground: #000000;
-  
-  --destructive: #EF4444;
-  --destructive-foreground: #FFFFFF;
-  
-  --border: rgba(212, 175, 55, 0.25); /* More prominent gold border */
-  --input: rgba(255, 255, 255, 0.1);
-  --ring: #D4AF37;
-
-  /* Gold Gradients */
-  --grad-primary: linear-gradient(135deg, #FFD700 0%, #D4AF37 100%);
-  --grad-gold-white: linear-gradient(135deg, #FFFFFF 0%, #D4AF37 100%);
+@theme {
+  --color-gold: #D4AF37;
+  --color-black-pure: #0B0B0B;
 }
 
-@layer base {
-  * {
-    border-color: var(--border);
-  }
-  body {
-    background-color: var(--background);
-    color: var(--foreground);
-    font-family: 'Inter', sans-serif;
-    -webkit-font-smoothing: antialiased;
-  }
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Outfit', sans-serif;
-    letter-spacing: -0.02em;
-  }
-}
-
-@layer utilities {
-  .glass {
-    background: rgba(40, 40, 40, 0.4);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  
-  .glass-gold {
-    background: rgba(212, 175, 55, 0.05);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(212, 175, 55, 0.3);
-  }
-
-  .text-gradient-gold {
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-image: var(--grad-primary);
-  }
-
-  .text-gradient-white-gold {
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-image: var(--grad-gold-white);
-  }
-
-  .bg-grid {
-    background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-    background-size: 40px 40px;
-  }
+/* Estilos base adicionales si los tenías */
+body {
+  background: #0B0B0B;
+  color: white;
 }
