@@ -6,6 +6,6 @@ dotenv.config({ path: ".env.local" });
 
 export default defineConfig({
   datasource: {
-    url: env("DATABASE_URL"),
+    url: process.env.DATABASE_URL || "mysql://root:password@localhost:3306/fightlab",
   },
 });
