@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import nodemailer from "nodemailer";
 
 export async function POST(req: Request) {
   try {
@@ -13,7 +12,6 @@ export async function POST(req: Request) {
     if (action === "send") {
       let userInDb = await prisma.user.findUnique({ where: { email: cleanEmail } });
       
-      // Registro automático
       if (!userInDb) {
         userInDb = await prisma.user.create({
           data: {
@@ -27,36 +25,31 @@ export async function POST(req: Request) {
 
       const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
       
-      // ESTE ES EL LOG QUE DEBES BUSCAR EN RENDER
-      console.log("*****************************************");
-      console.log(`CÓDIGO FIGHTLAB PARA ${cleanEmail}: ${generatedCode}`);
-      console.log("*****************************************");
-
       await prisma.user.update({
         where: { email: cleanEmail },
         data: { otpCode: generatedCode }
       });
 
-      // Envío en segundo plano (para que la web no espere)
-      const sendEmail = async () => {
-        const transporter = nodemailer.createTransport({
-          service: "gmail",
-          auth: {
-            user: process.env.GMAIL_USER,
-            pass: process.env.GMAIL_PASS,
-          }
-        });
-        try {
-          await transporter.sendMail({
-            from: `"FightLab" <${process.env.GMAIL_USER}>`,
+      // ENVÍO POR API DE RESEND (Instantáneo en Render)
+      const resendKey = process.env.RESEND_API_KEY;
+      
+      if (resendKey) {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: 'FightLab <onboarding@resend.dev>',
             to: cleanEmail,
             subject: `${generatedCode} es tu código de acceso`,
-            html: `<h1>FIGHTLAB</h1><p>Tu código: <strong>${generatedCode}</strong></p>`,
-          });
-        } catch (e) {}
-      };
-      sendEmail();
+            html: `<h1>FIGHTLAB</h1><p>Tu código de acceso es: <strong>${generatedCode}</strong></p>`
+          })
+        });
+      }
 
+      console.log(`[AUTH] Código para ${cleanEmail}: ${generatedCode}`);
       return NextResponse.json({ success: true });
     }
 
