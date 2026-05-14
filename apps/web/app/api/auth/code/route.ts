@@ -13,6 +13,7 @@ export async function POST(req: Request) {
     if (action === "send") {
       let userInDb = await prisma.user.findUnique({ where: { email: cleanEmail } });
       
+      // Registro automático
       if (!userInDb) {
         userInDb = await prisma.user.create({
           data: {
@@ -26,14 +27,17 @@ export async function POST(req: Request) {
 
       const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
       
-      // Guardamos en DB (Es muy rápido)
+      // ESTE ES EL LOG QUE DEBES BUSCAR EN RENDER
+      console.log("*****************************************");
+      console.log(`CÓDIGO FIGHTLAB PARA ${cleanEmail}: ${generatedCode}`);
+      console.log("*****************************************");
+
       await prisma.user.update({
         where: { email: cleanEmail },
         data: { otpCode: generatedCode }
       });
 
-      // ENVIAMOS EL EMAIL EN SEGUNDO PLANO (SIN AWAIT)
-      // Esto hace que la web responda al instante
+      // Envío en segundo plano (para que la web no espere)
       const sendEmail = async () => {
         const transporter = nodemailer.createTransport({
           service: "gmail",
@@ -42,30 +46,17 @@ export async function POST(req: Request) {
             pass: process.env.GMAIL_PASS,
           }
         });
-
         try {
           await transporter.sendMail({
             from: `"FightLab" <${process.env.GMAIL_USER}>`,
             to: cleanEmail,
             subject: `${generatedCode} es tu código de acceso`,
-            html: `<div style="background:#000;color:#fff;padding:40px;border:1px solid #D4AF37;text-align:center;border-radius:20px;font-family:sans-serif;">
-                    <h1 style="color:#D4AF37;">FIGHTLAB</h1>
-                    <h2 style="font-size:48px;color:#D4AF37;">${generatedCode}</h2>
-                  </div>`,
+            html: `<h1>FIGHTLAB</h1><p>Tu código: <strong>${generatedCode}</strong></p>`,
           });
-          console.log(`[AUTH] Email enviado a ${cleanEmail}`);
-        } catch (err: any) {
-          console.error("[AUTH] Error en segundo plano:", err.message);
-        }
+        } catch (e) {}
       };
-
-      // Ejecutamos la función sin esperar a que termine
       sendEmail();
-      
-      // LOG DE EMERGENCIA (Aparece al instante en Render)
-      console.log(`[AUTH] CÓDIGO INSTANTÁNEO PARA ${cleanEmail}: ${generatedCode}`);
 
-      // Respondemos de inmediato a la web
       return NextResponse.json({ success: true });
     }
 
