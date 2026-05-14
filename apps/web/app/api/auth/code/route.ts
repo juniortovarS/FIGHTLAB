@@ -2,15 +2,17 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import nodemailer from "nodemailer";
 
+const isProd = process.env.NODE_ENV === "production";
+
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 587,
-  secure: false, 
+  port: isProd ? 465 : 587,
+  secure: isProd, // true para 465 en Render, false para 587 en Local
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_PASS,
   },
-  connectionTimeout: 30000, 
+  connectionTimeout: 40000, // 40 segundos (más margen para Render)
 });
 
 export async function POST(req: Request) {
