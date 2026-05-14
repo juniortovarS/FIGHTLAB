@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1,
+    "name": "Junior Tovar",
+    "email": "junior.tovar@example.com",
+    "role": "Alumno",
+    "plan": "Regular",
+    "status": "Activo",
+    "joinDate": "2024-01-15"
+  },
+  {
+    "id": 2,
+    "name": "Alex 'El Toro'",
+    "email": "alex.toro@fightlab.com",
+    "role": "Coach",
+    "plan": "Staff — Muay Thai",
+    "status": "Activo",
+    "joinDate": "2023-05-10"
+  },
+  {
+    "id": 1000,
+    "name": "Admin FightLab",
+    "email": "adminfightlab@gmail.com",
+    "role": "Admin",
+    "plan": "Administración",
+    "status": "Activo",
+    "joinDate": "2023-01-01"
+  }
+]

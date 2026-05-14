@@ -1,0 +1,280 @@
+"use client";
+import { useState, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { NavSection, ClassItem, Reservation, mockReservations, checkOverlap } from "./components/data";
+import Sidebar from "./components/Sidebar";
+import ClassesSection from "./components/ClassesSection";
+import MisReservas from "./components/MisReservas";
+import Anuncios from "./components/Anuncios";
+import Membresias from "./components/Membresias";
+import MiPerfil from "./components/MiPerfil";
+import { UsuariosSection } from "./components/UsuariosSection";
+import HeroBanner from "./components/HeroBanner";
+import AICoach from "./ai-coach";
+import { Menu, Zap, Target, Users, TrendingUp, Sparkles, ShieldAlert } from "lucide-react";
+import { signOut } from "next-auth/react";
+import { UserItem } from "./components/data";
+
+interface DashboardClientProps {
+  userName: string;
+  userEmail: string;
+}
+
+const sectionTitles: Record<NavSection, string> = {
+  "dashboard":     "Panel de Control",
+  "planner":       "Planner Semanal",
+  "usuarios":      "Gestión de Usuarios",
+  "reservar":     "Clases Disponibles",
+  "mis-reservas": "Mis Reservas",
+  "anuncios":     "Notificaciones",
+  "membresias":   "Planes Premium",
+  "perfil":       "Mi Cuenta",
+  "historial":    "Historial de Clases",
+  "configuracion": "Configuración",
+  "soporte":      "Soporte Técnico",
+};
+
+export default function DashboardClient({ userName, userEmail }: DashboardClientProps) {
+  const isAdmin = userEmail === "adminfightlab@gmail.com" || userEmail === "admin@fightlab.ai";
+  
+  const [activeSection, setActiveSection] = useState<NavSection>(isAdmin ? "dashboard" : "reservar");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [users, setUsers] = useState<UserItem[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>(isAdmin ? mockReservations : []);
+  const [currentPlan, setCurrentPlan] = useState("4 Clases / Mes");
+  const [error, setError] = useState<string | null>(null);
+
+  const completedClasses = useMemo(() => reservations.filter(r => r.status === "Finalizada").length, [reservations]);
+  const activeReservationsCount = useMemo(() => reservations.filter(r => r.status === "Confirmada").length, [reservations]);
+  
+  const maxClasses = useMemo(() => {
+    if (currentPlan.includes("4")) return 4;
+    if (currentPlan.includes("8")) return 8;
+    if (currentPlan.includes("12")) return 12;
+    if (currentPlan === "Ilimitado") return 999;
+    return 0;
+  }, [currentPlan]);
+
+  const classesLeft = useMemo(() => Math.max(0, maxClasses - activeReservationsCount), [maxClasses, activeReservationsCount]);
+  const activeDisciplines = useMemo(() => new Set(reservations.map(r => r.classItem.name.split(" ")[0])).size, [reservations]);
+  const monthsActive = 1; 
+  const userLevel = Math.floor(completedClasses / 6) + 1;
+
+  useEffect(() => {
+    fetch("/api/users")
+      .then(res => res.json())
+      .then(data => {
+        setUsers(data);
+        const me = data.find((u: any) => u.email === userEmail);
+        if (me) setCurrentPlan(me.plan);
+      })
+      .catch(err => console.error("Error fetching users:", err));
+  }, [userEmail]);
+
+  const handleUpdateUser = async (updatedUser: UserItem) => {
+    setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+    await fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedUser)
+    });
+  };
+
+  const handleAddUser = async (newUser: UserItem) => {
+    setUsers(prev => [newUser, ...prev]);
+    await fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newUser)
+    });
+  };
+
+  const handleReserve = (item: ClassItem) => {
+    if (maxClasses !== 999 && classesLeft <= 0) {
+      setError("⚠️ Límite de clases alcanzado.");
+      setTimeout(() => setError(null), 4000);
+      return;
+    }
+    const overlapping = reservations.find(r => r.status === "Confirmada" && checkOverlap(r.classItem, item));
+    if (overlapping) {
+      setError(`⚠️ Conflicto: Ya tienes '${overlapping.classItem.name}' reservado.`);
+      setTimeout(() => setError(null), 4000);
+      return;
+    }
+    const newReservation: Reservation = {
+      id: Date.now(),
+      classItem: item,
+      status: "Confirmada",
+      reservedAt: new Date().toISOString().split("T")[0]!
+    };
+    setReservations((prev: Reservation[]) => [newReservation, ...prev]);
+  };
+
+  const handleCancel = (id: number) => {
+    setReservations((prev: Reservation[]) => prev.map(r => r.id === id ? { ...r, status: "Cancelada" } : r));
+  };
+
+  const renderSection = () => {
+    switch (activeSection) {
+      case "dashboard":     
+        return isAdmin ? (
+          <div className="p-10 glass rounded-[2.5rem] border border-white/5 text-center text-gray-500 font-medium">Dashboard Administrativo</div>
+        ) : (
+          <div className="p-10 glass rounded-[2.5rem] border border-red-500/20 text-center text-red-400 flex flex-col items-center gap-4">
+            <ShieldAlert size={48} />
+            <p className="font-bold">Acceso Denegado</p>
+          </div>
+        );
+      case "usuarios":      
+        return isAdmin ? <UsuariosSection users={users} onUpdateUser={handleUpdateUser} onAddUser={handleAddUser} /> : null;
+      case "reservar":     return <ClassesSection reservations={reservations} onReserve={handleReserve} />;
+      case "mis-reservas": return (
+        <MisReservas 
+          reservations={reservations} 
+          onCancel={handleCancel} 
+          hideHistory 
+          userName={userName}
+          onGoToClasses={() => setActiveSection("reservar")}
+        />
+      );
+      case "anuncios":     return <Anuncios />;
+      case "membresias":   return <Membresias onPlanSelect={(p) => setCurrentPlan(p)} currentPlan={currentPlan} />;
+      case "perfil":       return (
+        <MiPerfil 
+          userName={userName} 
+          userEmail={userEmail} 
+          currentPlan={currentPlan}
+          stats={{
+            completed: completedClasses,
+            disciplines: activeDisciplines,
+            months: monthsActive,
+            remaining: maxClasses === 999 ? 999 : classesLeft
+          }}
+        />
+      );
+      case "historial":    {
+        const historyOnly = reservations.filter(r => r.status === "Finalizada" || r.status === "Cancelada");
+        return historyOnly.length > 0 ? (
+          <MisReservas reservations={historyOnly} onCancel={() => {}} hideUpcoming userName={userName} />
+        ) : <div className="p-10 text-center text-gray-500 font-medium">No hay historial disponible.</div>;
+      }
+      default:             return <ClassesSection reservations={reservations} onReserve={handleReserve} />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0B0B0B] text-white selection:bg-[#D4AF37]/30">
+      <div className="fixed inset-0 bg-grid opacity-[0.03] pointer-events-none" />
+      <div className="fixed top-0 left-0 right-0 h-[600px] bg-gradient-to-b from-[#D4AF37]/5 to-transparent pointer-events-none" />
+
+      {/* Top Mobile Bar (Hidden on Desktop) */}
+      <div className="lg:hidden flex items-center justify-between p-5 glass sticky top-0 z-50 border-b border-white/5 backdrop-blur-xl">
+        <button 
+          onClick={() => setSidebarOpen(true)}
+          className="p-2 -ml-2 text-gray-400 hover:text-[#D4AF37] transition-colors"
+        >
+          <Menu size={24} />
+        </button>
+        <span className="font-black text-lg tracking-tighter uppercase">Fight<span className="text-[#D4AF37]">Lab</span></span>
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#D4AF37] to-[#B8860B] flex items-center justify-center text-black font-black">
+          {userName?.[0]}
+        </div>
+      </div>
+
+      <div className="flex">
+        <Sidebar
+          active={activeSection}
+          isAdmin={isAdmin}
+          onNav={(s) => { setActiveSection(s); setSidebarOpen(false); }}
+          userName={userName}
+          userEmail={userEmail}
+          onLogout={async () => { await signOut({ redirect: false }); window.location.href = "/login"; }}
+          isOpen={sidebarOpen}
+          setIsOpen={setSidebarOpen}
+        />
+
+        <main className="flex-1 lg:ml-64 p-5 lg:p-12 relative max-w-[1600px] mx-auto w-full">
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="fixed top-24 right-5 lg:right-12 z-[100] px-6 py-4 rounded-2xl glass-gold text-[#D4AF37] text-xs font-black uppercase tracking-widest shadow-2xl border border-[#D4AF37]/30"
+              >
+                {error}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Desktop Welcome Banner */}
+          {!isAdmin && activeSection === "perfil" && (
+            <div className="hidden lg:block mb-10">
+              <HeroBanner 
+                userName={userName} 
+                userEmail={userEmail} 
+                classesLeft={maxClasses === 999 ? 999 : classesLeft} 
+                onNav={(s) => setActiveSection(s)} 
+              />
+            </div>
+          )}
+
+          <header className="mb-8 lg:mb-12">
+            <motion.h1
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="text-3xl lg:text-5xl font-black mb-3 tracking-tight"
+            >
+              {sectionTitles[activeSection]}
+            </motion.h1>
+            <div className="flex flex-wrap items-center gap-3 text-gray-500 text-[11px] font-black uppercase tracking-[0.2em]">
+              <span className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
+                <Sparkles size={12} className="text-[#D4AF37]" /> Guerrero Nivel {userLevel}
+              </span>
+              <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-white/10" />
+              <span className="px-3 py-1 bg-white/5 rounded-full border border-white/5">
+                {maxClasses === 999 ? "Acceso Ilimitado" : `${classesLeft} Clases Disponibles`}
+              </span>
+            </div>
+          </header>
+
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+            {[
+              { label: "Clases Libres", value: maxClasses === 999 ? "∞" : classesLeft, icon: <Zap size={18} />, color: "text-[#D4AF37]" },
+              { label: "Rango Actual", value: `LEVEL ${userLevel}`, icon: <Target size={18} />, color: "text-[#D4AF37]" },
+              { label: "Membresía", value: "Activa", icon: <Users size={18} />, color: "text-emerald-400" },
+              { label: "Progreso", value: `${completedClasses}/6`, icon: <TrendingUp size={18} />, color: "text-[#D4AF37]" },
+            ].map((m, i) => (
+              <motion.div
+                key={m.label}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="glass p-5 lg:p-8 rounded-[2rem] border-white/5 group hover:border-[#D4AF37]/30 transition-all duration-500"
+              >
+                <div className={`mb-4 p-3 rounded-xl w-fit bg-white/5 ${m.color} group-hover:scale-110 transition-transform`}>
+                  {m.icon}
+                </div>
+                <p className="text-gray-500 text-[9px] lg:text-[10px] font-black uppercase tracking-widest mb-1">{m.label}</p>
+                <h3 className="text-xl lg:text-3xl font-black">{m.value}</h3>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div
+            key={activeSection}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            {renderSection()}
+          </motion.div>
+
+          <div className="mt-20">
+            <AICoach />
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}

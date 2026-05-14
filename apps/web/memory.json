@@ -1,0 +1,24 @@
+{
+  "admin@fightlab.com": {
+    "userId": "admin@fightlab.com",
+    "messages": [
+      {
+        "role": "user",
+        "content": "eres un ia? "
+      },
+      {
+        "role": "assistant",
+        "content": "¡Exacto! Soy tu AI Coach oficial de FightLab. 🥊 Estoy aquí para llevar tu entrenamiento al siguiente nivel y que rompas tus límites. 💪🔥\n\n¿Listo para darle con todo hoy? ¡Dime qué clase buscamos! 🥋🔥"
+      },
+      {
+        "role": "user",
+        "content": "que clases hay hoy?"
+      },
+      {
+        "role": "assistant",
+        "content": ""
+      }
+    ],
+    "updatedAt": "2026-05-11T17:56:47.420Z"
+  }
+}
