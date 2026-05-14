@@ -22,8 +22,20 @@ export async function POST(req: Request) {
     if (!cleanEmail) return NextResponse.json({ error: "Email requerido" }, { status: 400 });
 
     if (action === "send") {
-      const userInDb = await prisma.user.findUnique({ where: { email: cleanEmail } });
-      const isAdmin = cleanEmail === "adminfightlab@gmail.com" || cleanEmail === "admin@fightlab.ai";
+      let userInDb = await prisma.user.findUnique({ where: { email: cleanEmail } });
+      const isAdmin = cleanEmail === "adminfightlab@gmail.com" || cleanEmail === "juniortovar601@gmail.com";
+
+      // Si es Admin y no existe, lo creamos automáticamente
+      if (!userInDb && isAdmin) {
+        userInDb = await prisma.user.create({
+          data: {
+            name: "Administrador",
+            email: cleanEmail,
+            role: "admin",
+            status: "Activo"
+          }
+        });
+      }
 
       if (!userInDb && !isAdmin) {
         return NextResponse.json({ error: "Correo no autorizado." }, { status: 404 });
