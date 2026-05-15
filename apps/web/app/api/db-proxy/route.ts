@@ -3,9 +3,8 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   try {
-    const { action, data, secret } = await req.json();
+    const { action, data, secret, email } = await req.json();
 
-    // Seguridad
     if (secret !== process.env.NEXTAUTH_SECRET) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
@@ -13,6 +12,19 @@ export async function POST(req: Request) {
     if (action === "GET_USERS") {
       const users = await prisma.user.findMany({ orderBy: { joinDate: "desc" } });
       return NextResponse.json(users);
+    }
+
+    if (action === "GET_USER_BY_EMAIL") {
+      const user = await prisma.user.findUnique({ where: { email } });
+      return NextResponse.json(user);
+    }
+
+    if (action === "UPDATE_USER_OTP") {
+      const user = await prisma.user.update({
+        where: { email },
+        data: { otpCode: data.otpCode }
+      });
+      return NextResponse.json(user);
     }
 
     if (action === "UPSERT_USER") {
