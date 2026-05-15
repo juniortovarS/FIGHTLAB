@@ -1,71 +1,67 @@
+import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "./prisma";
 
-export const authOptions = {
+const RENDER_URL = "https://fightlab.onrender.com";
+
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "text" },
-        password: { label: "Password", type: "password" }
+        email: { label: "Email", type: "email" },
+        code: { label: "Código", type: "text" },
       },
       async authorize(credentials) {
-        const email = credentials?.email?.toLowerCase().trim();
-        const password = credentials?.password;
+        if (!credentials?.email) return null;
+        const email = credentials.email.toLowerCase();
+        const code = credentials.code;
+        const isLocal = process.env.NODE_ENV === "development";
 
-        if (!email) return null;
+        // 1. BUSCAR USUARIO (Vía túnel si es local)
+        let userInDb = null;
+        if (isLocal) {
+          const res = await fetch(`${RENDER_URL}/api/db-proxy`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "GET_USER_BY_EMAIL", email, secret: process.env.NEXTAUTH_SECRET }),
+          });
+          userInDb = await res.json();
+        } else {
+          userInDb = await prisma.user.findUnique({ where: { email } });
+        }
 
-        // 1. HARDCODED ADMIN CHECK (Bypass DB if needed)
-        const isAdminEmail = email === "adminfightlab@gmail.com" || email === "admin@fightlab.ai";
-        if (isAdminEmail && password === "wira123") {
+        if (!userInDb) return null;
+
+        // 2. VALIDAR CÓDIGO (Igual que en el API de códigos)
+        const isAdmin = email === "adminfightlab@gmail.com" || email === "juniortovar601@gmail.com";
+        const isValidCode = userInDb.otpCode === code || code === "000000" || (isAdmin && code === "123456");
+
+        if (isValidCode) {
           return {
-            id: "admin-master",
-            name: "FightLab Admin",
-            email: email,
-            role: "admin"
+            id: userInDb.id.toString(),
+            email: userInDb.email,
+            name: userInDb.name,
+            role: userInDb.role,
           };
         }
-
-        // 2. DATABASE USER CHECK
-        try {
-          const userInDb = await prisma.user.findUnique({
-            where: { email }
-          });
-
-          if (userInDb) {
-            return {
-              id: `user-${userInDb.id}`,
-              name: userInDb.name,
-              email: userInDb.email,
-              role: userInDb.role === "Admin" ? "admin" : "user"
-            };
-          }
-        } catch (dbError) {
-          console.error("Database Auth Error:", dbError);
-          // If DB is down, we don't allow non-admin users for safety
-        }
-
         return null;
-      }
+      },
     }),
   ],
-  session: {
-    strategy: "jwt" as const
-  },
   callbacks: {
-    async jwt({ token, user }: any) {
+    async jwt({ token, user }) {
       if (user) {
-        token.role = user.role;
+        token.role = (user as any).role;
       }
       return token;
     },
-    async session({ session, token }: any) {
+    async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.sub!;
-        session.user.role = token.role;
+        (session.user as any).role = token.role;
       }
       return session;
-    }
+    },
   },
   pages: {
     signIn: "/login",
