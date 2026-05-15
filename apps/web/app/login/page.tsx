@@ -60,7 +60,7 @@ export default function LoginPage() {
       if (res.ok) {
         await signIn("credentials", {
           email,
-          password: "wira123", // Fixed password for 2-step bypass
+          code: otp, // Enviamos el código real
           callbackUrl: "/dashboard",
         });
       } else {
