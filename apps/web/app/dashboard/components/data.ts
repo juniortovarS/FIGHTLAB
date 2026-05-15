@@ -3,7 +3,7 @@ export type Sede = "Todas" | "Primavera" | "La Mar";
 export type DayFilter = "Hoy" | "Próximas";
 
 export interface ClassItem {
-  id: number;
+  id: string;
   name: string;
   coach: string;
   time: string; // HH:mm
@@ -20,7 +20,7 @@ export interface ClassItem {
 }
 
 export interface Reservation {
-  id: number;
+  id: string | number;
   classItem: ClassItem;
   status: "Confirmada" | "Cancelada" | "Finalizada";
   reservedAt: string;
@@ -56,53 +56,43 @@ export const checkOverlap = (classA: ClassItem, classB: ClassItem): boolean => {
   return (startA < endB && startB < endA);
 };
 
-const today = new Date().toISOString().split("T")[0]!;
-const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0]!;
+const generateClasses = (): ClassItem[] => {
+  const baseClasses = [
+    { name: "Muay Thai Técnico", coach: "Alex 'El Toro'", time: "08:00", duration: 60, icon: "🥊", gradient: "from-indigo-600 to-violet-600", level: "Intermedio", sede: "Primavera" },
+    { name: "BJJ Gi — Fundamentos", coach: "Carlos Gracie Jr.", time: "09:00", duration: 90, icon: "🥋", gradient: "from-blue-600 to-cyan-600", level: "Principiante", sede: "La Mar" },
+    { name: "Boxeo Técnico", coach: "Canelo", time: "13:30", duration: 60, icon: "🥊", gradient: "from-amber-600 to-red-600", level: "Intermedio", sede: "Primavera" },
+    { name: "Boxeo Tradicional", coach: "Miguel Cotto", time: "10:30", duration: 60, icon: "🥊", gradient: "from-red-600 to-orange-600", level: "Principiante", sede: "Primavera" },
+    { name: "Boxeo Elite", coach: "Canelo Style", time: "16:00", duration: 60, icon: "🥊", gradient: "from-rose-600 to-orange-600", level: "Avanzado", sede: "Primavera" },
+    { name: "Wrestling / Lucha", coach: "Jordan Borroughs", time: "18:00", duration: 60, icon: "🤼", gradient: "from-amber-600 to-orange-600", level: "Intermedio", sede: "La Mar" },
+    { name: "Kickboxing", coach: "Israel Adesanya", time: "19:30", duration: 60, icon: "🦵", gradient: "from-emerald-600 to-teal-600", level: "Principiante", sede: "Primavera" },
+  ];
 
-export const mockClasses: ClassItem[] = [
-  {
-    id: 1, name: "Muay Thai Técnico", coach: "Alex 'El Toro'", time: "08:00", duration: 60,
-    date: today, sede: "Primavera", spots: 14, totalSpots: 14, level: "Intermedio",
-    icon: "🥊", gradient: "from-indigo-600 to-violet-600",
-    description: "Enfoque en combinaciones de codos y rodillas.",
-    benefits: ["Técnica pura", "Cardio intenso", "Defensa personal"]
-  },
-  {
-    id: 2, name: "BJJ Gi — Fundamentos", coach: "Carlos Gracie Jr.", time: "09:00", duration: 90,
-    date: today, sede: "La Mar", spots: 14, totalSpots: 14, level: "Principiante",
-    icon: "🥋", gradient: "from-blue-600 to-cyan-600",
-    description: "Aprende las bases del arte suave.",
-    benefits: ["Control", "Disciplina", "Fuerza funcional"]
-  },
-  {
-    id: 10, name: "Boxeo Tradicional", coach: "Miguel Cotto", time: "08:30", duration: 60,
-    date: today, sede: "Primavera", spots: 14, totalSpots: 14, level: "Principiante",
-    icon: "🥊", gradient: "from-red-600 to-orange-600",
-    description: "Clase de boxeo puro. Cruza con Muay Thai.",
-    benefits: ["Ganchos", "Jabs", "Esquiva"]
-  },
-  {
-    id: 3, name: "Boxeo Elite", coach: "Canelo Style", time: "10:00", duration: 60,
-    date: today, sede: "Primavera", spots: 14, totalSpots: 14, level: "Avanzado",
-    icon: "🥊", gradient: "from-rose-600 to-orange-600",
-    description: "Sparring y técnica avanzada de pies.",
-    benefits: ["Agilidad", "Potencia", "Estrategia"]
-  },
-  {
-    id: 4, name: "Wrestling / Lucha", coach: "Jordan Borroughs", time: "18:00", duration: 60,
-    date: today, sede: "La Mar", spots: 14, totalSpots: 14, level: "Intermedio",
-    icon: "🤼", gradient: "from-amber-600 to-orange-600",
-    description: "Derribos y control en el suelo.",
-    benefits: ["Explosividad", "Resistencia", "Equilibrio"]
-  },
-  {
-    id: 5, name: "Kickboxing", coach: "Israel Adesanya", time: "08:30", duration: 60,
-    date: tomorrow, sede: "Primavera", spots: 14, totalSpots: 14, level: "Principiante",
-    icon: "🦵", gradient: "from-emerald-600 to-teal-600",
-    description: "Combinaciones de pateo y golpeo.",
-    benefits: ["Coordinación", "Quema de grasa", "Flexibilidad"]
+  const classes: ClassItem[] = [];
+  let globalId = 1;
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    const dateStr = d.toISOString().split("T")[0]!;
+
+    baseClasses.forEach((bc) => {
+      const classId = `${dateStr}-${bc.time}-${bc.name.replace(/\s+/g, "-")}`;
+      classes.push({
+        ...bc,
+        id: classId,
+        date: dateStr,
+        spots: 14,
+        totalSpots: 14,
+        description: `Clase de ${bc.name} de alto rendimiento. Enfocada en técnica y resistencia física bajo la supervisión de ${bc.coach}.`,
+        benefits: ["Técnica Superior", "Acondicionamiento", "Disciplina Mental"]
+      } as ClassItem);
+    });
   }
-];
+  return classes;
+};
+
+export const mockClasses: ClassItem[] = generateClasses();
+const today = new Date().toISOString().split("T")[0]!;
 
 export const mockReservations: Reservation[] = [
   { id: 101, classItem: mockClasses[0]!, status: "Finalizada", reservedAt: today },

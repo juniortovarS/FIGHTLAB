@@ -61,7 +61,24 @@ export default function DashboardClient({ userName, userEmail }: DashboardClient
 
   const classesLeft = useMemo(() => Math.max(0, maxClasses - activeReservationsCount), [maxClasses, activeReservationsCount]);
   const activeDisciplines = useMemo(() => new Set(reservations.map(r => r.classItem.name.split(" ")[0])).size, [reservations]);
-  const monthsActive = 1; 
+  
+  const [activeSince, setActiveSince] = useState<string | null>(null);
+  
+  const daysActive = useMemo(() => {
+    if (!activeSince) return 1;
+    const startDate = new Date(activeSince);
+    startDate.setHours(0, 0, 0, 0);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
+    const diffTime = now.getTime() - startDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1; 
+    
+    if (diffDays > 31) return 31;
+    if (diffDays < 1) return 1;
+    return diffDays;
+  }, [activeSince]);
+
   const userLevel = Math.floor(completedClasses / 6) + 1;
 
   // Calculamos los cupos reales basados en las reservas de TODOS los usuarios
@@ -76,7 +93,10 @@ export default function DashboardClient({ userName, userEmail }: DashboardClient
           if (Array.isArray(userRes)) {
             userRes.forEach(r => {
               if (r.status === "Confirmada") {
-                const target = classes.find(c => c.id === r.classItem.id);
+                const target = classes.find(c => 
+                  c.id === r.classItem.id || 
+                  (c.name === r.classItem.name && c.date === r.classItem.date && c.time === r.classItem.time)
+                );
                 if (target) {
                   target.spots = Math.max(0, target.spots - 1);
                 }
@@ -100,37 +120,95 @@ export default function DashboardClient({ userName, userEmail }: DashboardClient
     fetch("/api/users")
       .then(res => res.json())
       .then(data => {
-        console.log(">>> DASHBOARD: Datos recibidos:", data);
-        
-        // Manejar el caso donde data puede venir dentro de una propiedad o ser el array directo
         const usersList = Array.isArray(data) ? data : (data.users || []);
         setUsers(usersList);
         
         const me = usersList.find((u: any) => u.email.toLowerCase() === userEmail.toLowerCase());
         
         if (me) {
-          console.log(">>> DASHBOARD: Usuario encontrado:", me);
           setCurrentPlan(me.plan || "Regular");
+          setActiveSince(me.planActiveDate || me.joinDate || null);
           if (me.clasesDisponibles !== undefined) setAssignedClasses(me.clasesDisponibles);
           
           if (me.reservations && me.reservations !== "null") {
             try {
               const parsed = typeof me.reservations === "string" ? JSON.parse(me.reservations) : me.reservations;
-              console.log(">>> DASHBOARD: Reservas parseadas:", parsed);
               setReservations(Array.isArray(parsed) ? parsed : []);
             } catch (e) {
-              console.error("Error cargando reservas:", e);
               setReservations([]);
             }
           }
-        } else {
-          console.warn(">>> DASHBOARD: No se encontró al usuario en la lista:", userEmail);
         }
       })
       .catch(err => {
         console.error(">>> DASHBOARD: Error fetching users:", err);
       });
   }, [userEmail]);
+
+  // Efecto para marcar clases como finalizadas automáticamente
+  useEffect(() => {
+    if (!userEmail || reservations.length === 0) return;
+
+    const checkCompletion = () => {
+      const now = new Date();
+      const todayStr = now.toISOString().split("T")[0]!;
+      const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
+
+      let changed = false;
+      const updatedReservations = reservations.map(res => {
+        if (res.status === "Confirmada") {
+          const [h, m] = res.classItem.time.split(":").map(Number);
+          const startTimeMinutes = (h ?? 0) * 60 + (m ?? 0);
+          const endTimeMinutes = startTimeMinutes + res.classItem.duration;
+
+          // Si es de hoy y ya pasó la hora de fin (ej: 13:30 + 60min = 14:30)
+          if (res.classItem.date === todayStr && currentTimeMinutes >= endTimeMinutes) {
+            changed = true;
+            return { ...res, status: "Finalizada" as const };
+          }
+          // Si la fecha ya pasó
+          if (res.classItem.date < todayStr) {
+            changed = true;
+            return { ...res, status: "Finalizada" as const };
+          }
+        }
+        return res;
+      });
+
+      if (changed) {
+        console.log(">>> DASHBOARD: Detectadas clases finalizadas. Actualizando...");
+        setReservations(updatedReservations);
+        
+        // Actualizar lista local de usuarios
+        setUsers(prev => prev.map(u => 
+          u.email.toLowerCase() === userEmail.toLowerCase() 
+            ? { ...u, reservations: JSON.stringify(updatedReservations) } 
+            : u
+        ));
+
+        // Sincronizar con DB
+        fetch("/api/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            email: userEmail, 
+            name: userName,
+            reservations: JSON.stringify(updatedReservations) 
+          })
+        });
+      }
+    };
+
+    const interval = setInterval(checkCompletion, 20000); // Revisar cada 20 seg
+    checkCompletion(); 
+
+    return () => clearInterval(interval);
+  }, [reservations, userEmail, userName]);
+
+  // Scroll al inicio al cambiar de sección
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [activeSection]);
 
   const handleUpdateUser = async (updatedUser: UserItem) => {
     setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
@@ -156,7 +234,10 @@ export default function DashboardClient({ userName, userEmail }: DashboardClient
       setTimeout(() => setError(null), 4000);
       return;
     }
-    const overlapping = reservations.find(r => r.status === "Confirmada" && checkOverlap(r.classItem, item));
+    const overlapping = reservations.find(r => 
+      r.status === "Confirmada" && 
+      (r.classItem.id === item.id || (r.classItem.name === item.name && r.classItem.date === item.date && r.classItem.time === item.time))
+    );
     if (overlapping) {
       setError(`⚠️ Conflicto: Ya tienes '${overlapping.classItem.name}' reservado.`);
       setTimeout(() => setError(null), 4000);
@@ -203,7 +284,7 @@ export default function DashboardClient({ userName, userEmail }: DashboardClient
 
   };
 
-  const handleCancel = (id: number) => {
+  const handleCancel = (id: string | number) => {
     const updated = reservations.map(r => r.id === id ? { ...r, status: "Cancelada" as const } : r);
     setReservations(updated);
 
@@ -265,7 +346,7 @@ export default function DashboardClient({ userName, userEmail }: DashboardClient
           stats={{
             completed: completedClasses,
             disciplines: activeDisciplines,
-            months: monthsActive,
+            days: daysActive,
             remaining: maxClasses === 999 ? 999 : classesLeft
           }}
         />
@@ -314,7 +395,7 @@ export default function DashboardClient({ userName, userEmail }: DashboardClient
         <Sidebar
           active={activeSection}
           isAdmin={isAdmin}
-          onNav={(s) => { setActiveSection(s); setSidebarOpen(false); }}
+          onNav={(s: NavSection) => { setActiveSection(s); setSidebarOpen(false); }}
           userName={userName}
           userEmail={userEmail}
           onLogout={async () => { await signOut({ redirect: false }); window.location.href = "/login"; }}
@@ -343,6 +424,7 @@ export default function DashboardClient({ userName, userEmail }: DashboardClient
                 userName={userName} 
                 userEmail={userEmail} 
                 classesLeft={maxClasses === 999 ? 999 : classesLeft} 
+                daysActive={daysActive}
                 onNav={(s) => setActiveSection(s)} 
               />
             </div>
@@ -379,8 +461,16 @@ export default function DashboardClient({ userName, userEmail }: DashboardClient
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className="glass p-5 lg:p-8 rounded-[2rem] border-white/5 group hover:border-[#D4AF37]/30 transition-all duration-500"
+                className={`glass p-6 lg:p-8 rounded-[2.5rem] border flex flex-col transition-all duration-500 group relative overflow-hidden ${
+                  m.color.includes("emerald") 
+                    ? "border-emerald-500/20 hover:border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.05)]" 
+                    : "border-white/10 hover:border-[#D4AF37]/40 shadow-[0_0_30px_rgba(212,175,55,0.05)]"
+                }`}
               >
+                {/* Decoration */}
+                <div className={`absolute -right-4 -top-4 w-16 h-16 blur-2xl opacity-[0.05] rounded-full transition-opacity group-hover:opacity-20 ${
+                  m.color.includes("emerald") ? "bg-emerald-500" : "bg-[#D4AF37]"
+                }`} />
                 <div className={`mb-4 p-3 rounded-xl w-fit bg-white/5 ${m.color} group-hover:scale-110 transition-transform`}>
                   {m.icon}
                 </div>

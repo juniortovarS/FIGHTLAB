@@ -10,7 +10,7 @@ interface MiPerfilProps {
   stats: {
     completed: number;
     disciplines: number;
-    months: number;
+    days: number;
     remaining: number;
   };
 }
@@ -29,7 +29,7 @@ export default function MiPerfil({ userName, userEmail, currentPlan, stats }: Mi
 
   const statItems = [
     { label: "Victorias (Clases)", value: stats.completed, color: "text-[#D4AF37]", glow: "shadow-[0_0_20px_rgba(212,175,55,0.2)]" },
-    { label: "Meses de Garra", value: stats.months, color: "text-white", glow: "shadow-[0_0_20px_rgba(255,255,255,0.05)]" },
+    { label: "Días de Garra", value: `${stats.days} ${stats.days === 1 ? "día" : "días"}`, color: "text-white", glow: "shadow-[0_0_20px_rgba(255,255,255,0.05)]" },
     { label: "Disciplinas", value: stats.disciplines, color: "text-[#D4AF37]", glow: "shadow-[0_0_20px_rgba(212,175,55,0.2)]" },
     { label: "Clases restantes", value: stats.remaining === 999 ? "∞" : stats.remaining, color: "text-white", glow: "shadow-[0_0_20px_rgba(255,255,255,0.05)]" },
   ];

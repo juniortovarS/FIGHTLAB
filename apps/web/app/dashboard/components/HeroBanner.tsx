@@ -7,10 +7,11 @@ interface HeroBannerProps {
   userName: string;
   userEmail: string;
   classesLeft: number;
+  daysActive: number;
   onNav: (s: NavSection) => void;
 }
 
-export default function HeroBanner({ userName, userEmail, classesLeft, onNav }: HeroBannerProps) {
+export default function HeroBanner({ userName, userEmail, classesLeft, daysActive, onNav }: HeroBannerProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -129,7 +130,7 @@ export default function HeroBanner({ userName, userEmail, classesLeft, onNav }: 
           {/* Stats */}
           {[
             { label: "Clases restantes", value: classesLeft, icon: <Flame size={14} /> },
-            { label: "Días activo", value: 47, icon: <Zap size={14} /> },
+            { label: "Días activo", value: daysActive, icon: <Zap size={14} /> },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}

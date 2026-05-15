@@ -58,9 +58,11 @@ export default function Membresias({ onPlanSelect, currentPlan }: MembresiasProp
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
-              className={`relative rounded-[2.5rem] p-10 glass border-white/5 flex flex-col transition-all duration-500 ${
-                plan.popular ? "border-[#D4AF37]/30 shadow-[0_0_50px_rgba(212,175,55,0.1)] scale-105 z-10" : "hover:border-white/20"
-              } ${isActive ? "border-[#D4AF37] ring-1 ring-[#D4AF37]" : ""}`}
+              className={`relative rounded-[2.5rem] p-10 glass border flex flex-col transition-all duration-500 ${
+                plan.popular 
+                  ? "border-[#D4AF37]/50 shadow-[0_0_50px_rgba(212,175,55,0.15)] scale-105 z-10" 
+                  : "border-white/10 hover:border-[#D4AF37]/30"
+              } ${isActive ? "border-[#D4AF37] ring-2 ring-[#D4AF37]/20 shadow-[0_0_30px_rgba(212,175,55,0.2)]" : ""}`}
             >
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2">
