@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ClassItem, Reservation, mockClasses, Sede } from "./data";
+import { ClassItem, Reservation, Sede } from "./data";
 import { Search, MapPin, CheckCircle2, Users } from "lucide-react";
 import ClassCard from "./ClassCard";
 import BookingModal from "./BookingModal";

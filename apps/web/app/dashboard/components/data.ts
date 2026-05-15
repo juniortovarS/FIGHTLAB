@@ -38,6 +38,7 @@ export interface UserItem {
   planActiveDate?: string;
   planExpiryDate?: string;
   clasesDisponibles?: number;
+  reservations?: string;
 }
 
 export const PLANS = ["4 Clases / Mes", "8 Clases / Mes", "12 Clases / Mes", "Ilimitado", "Staff / Coach", "Administración"];
