@@ -52,19 +52,52 @@ export const checkOverlap = (classA: ClassItem, classB: ClassItem): boolean => {
   const startA = getMinutes(classA.time);
   const endA = startA + classA.duration;
   const startB = getMinutes(classB.time);
-  const endB = startB + startB + classA.duration;
+  const endB = startB + classB.duration;
   return (startA < endB && startB < endA);
 };
 
 const generateClasses = (): ClassItem[] => {
   const baseClasses = [
-    { name: "Muay Thai Técnico", coach: "Alex 'El Toro'", time: "08:00", duration: 60, icon: "🥊", gradient: "from-indigo-600 to-violet-600", level: "Intermedio", sede: "Primavera" },
-    { name: "BJJ Gi — Fundamentos", coach: "Carlos Gracie Jr.", time: "09:00", duration: 90, icon: "🥋", gradient: "from-blue-600 to-cyan-600", level: "Principiante", sede: "La Mar" },
-    { name: "Boxeo Técnico", coach: "Canelo", time: "13:30", duration: 60, icon: "🥊", gradient: "from-amber-600 to-red-600", level: "Intermedio", sede: "Primavera" },
-    { name: "Boxeo Tradicional", coach: "Miguel Cotto", time: "10:30", duration: 60, icon: "🥊", gradient: "from-red-600 to-orange-600", level: "Principiante", sede: "Primavera" },
-    { name: "Boxeo Elite", coach: "Canelo Style", time: "16:00", duration: 60, icon: "🥊", gradient: "from-rose-600 to-orange-600", level: "Avanzado", sede: "Primavera" },
-    { name: "Wrestling / Lucha", coach: "Jordan Borroughs", time: "18:00", duration: 60, icon: "🤼", gradient: "from-amber-600 to-orange-600", level: "Intermedio", sede: "La Mar" },
-    { name: "Kickboxing", coach: "Israel Adesanya", time: "19:30", duration: 60, icon: "🦵", gradient: "from-emerald-600 to-teal-600", level: "Principiante", sede: "Primavera" },
+    { 
+      name: "Muay Thai", coach: "Alex 'El Toro'", time: "08:00", duration: 60, icon: "🥊", gradient: "from-indigo-600 to-violet-600", level: "Intermedio", sede: "Primavera",
+      description: "Arte de las ocho extremidades. Aprende combinaciones de codos, rodillas, patadas y clinching.",
+      benefits: ["Defensa Personal", "Quema de Grasa", "Coordinación"]
+    },
+    { 
+      name: "Boxing", coach: "Miguel Cotto", time: "09:15", duration: 60, icon: "🥊", gradient: "from-red-600 to-orange-600", level: "Principiante", sede: "La Mar",
+      description: "Técnica pura de manos, juego de pies y esquivas. Ideal para todos los niveles.",
+      benefits: ["Velocidad", "Potencia de Golpeo", "Reflejos"]
+    },
+    { 
+      name: "Power Boxing", coach: "Canelo Style", time: "14:00", duration: 60, icon: "🔥", gradient: "from-rose-600 to-orange-600", level: "Avanzado", sede: "Primavera",
+      description: "Entrenamiento de alta intensidad combinando boxeo con intervalos de potencia explosiva.",
+      benefits: ["Fuerza Explosiva", "Alta Intensidad", "Resistencia"]
+    },
+    { 
+      name: "Funcional Training", coach: "Coach Fit", time: "17:00", duration: 60, icon: "💪", gradient: "from-blue-600 to-cyan-600", level: "Principiante", sede: "Primavera",
+      description: "Entrenamiento diseñado para mejorar el rendimiento físico en la vida diaria y el deporte.",
+      benefits: ["Core Fuerte", "Movilidad", "Fuerza General"]
+    },
+    { 
+      name: "Booty Lab", coach: "Coach GL", time: "18:15", duration: 60, icon: "🍑", gradient: "from-pink-600 to-rose-600", level: "Intermedio", sede: "La Mar",
+      description: "Enfoque especializado en glúteos y piernas. Tonificación y fuerza localizada.",
+      benefits: ["Tonificación", "Fuerza Inferior", "Resistencia Muscular"]
+    },
+    { 
+      name: "Muay Thai", coach: "Sanchai Jr.", time: "14:30", duration: 60, icon: "🥊", gradient: "from-indigo-600 to-violet-600", level: "Avanzado", sede: "La Mar",
+      description: "Muay Thai avanzado enfocado en sparring y estrategia de combate.",
+      benefits: ["Estrategia", "Clinch Avanzado", "Timing"]
+    },
+    { 
+      name: "Boxing", coach: "Iron Mike", time: "19:00", duration: 60, icon: "🥊", gradient: "from-red-600 to-orange-600", level: "Principiante", sede: "Primavera",
+      description: "Clase de boxeo enfocada en fundamentos y técnica defensiva.",
+      benefits: ["Guardia", "Desplazamiento", "Jabs"]
+    },
+    { 
+      name: "Power Boxing", coach: "GGG Style", time: "20:30", duration: 60, icon: "🔥", gradient: "from-rose-600 to-orange-600", level: "Intermedio", sede: "Primavera",
+      description: "Entrenamiento cardiovascular intenso con sacos y manoplas.",
+      benefits: ["Cardio", "Técnica", "Desestrés"]
+    },
   ];
 
   const classes: ClassItem[] = [];
@@ -83,8 +116,6 @@ const generateClasses = (): ClassItem[] => {
         date: dateStr,
         spots: 14,
         totalSpots: 14,
-        description: `Clase de ${bc.name} de alto rendimiento. Enfocada en técnica y resistencia física bajo la supervisión de ${bc.coach}.`,
-        benefits: ["Técnica Superior", "Acondicionamiento", "Disciplina Mental"]
       } as ClassItem);
     });
   }

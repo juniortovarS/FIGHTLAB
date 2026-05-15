@@ -10,19 +10,19 @@ interface MembresiasProps {
 
 const plans = [
   {
-    id: "basic", name: "Guerrero 4", price: 180, icon: <Zap size={24} />,
+    id: "basic", name: "Pack 4 clases", price: 180, icon: <Zap size={24} />,
     fullName: "4 Clases / Mes",
     benefits: ["4 clases al mes", "Acceso a sede principal", "Vestuarios", "Evaluación inicial"],
     popular: false,
   },
   {
-    id: "regular", name: "Guerrero 8", price: 250, icon: <Sparkles size={24} />,
+    id: "regular", name: "Pack 8 clases", price: 250, icon: <Sparkles size={24} />,
     fullName: "8 Clases / Mes",
     benefits: ["8 clases al mes", "Acceso a sede principal", "Vestuarios", "1 sesión de técnica"],
     popular: false,
   },
   {
-    id: "pro", name: "Guerrero 12", price: 320, icon: <Rocket size={24} />,
+    id: "pro", name: "Pack 12 clases", price: 320, icon: <Rocket size={24} />,
     fullName: "12 Clases / Mes",
     benefits: ["12 clases al mes", "Acceso total", "Vestuarios + casillero", "1 sesión personal/mes"],
     popular: true,
@@ -51,18 +51,17 @@ export default function Membresias({ onPlanSelect, currentPlan }: MembresiasProp
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {plans.map((plan, i) => {
           const isActive = currentPlan === plan.fullName;
-          
+
           return (
             <motion.div
               key={plan.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
-              className={`relative rounded-[2.5rem] p-10 glass border flex flex-col transition-all duration-500 ${
-                plan.popular 
-                  ? "border-[#D4AF37]/50 shadow-[0_0_50px_rgba(212,175,55,0.15)] scale-105 z-10" 
+              className={`relative rounded-[2.5rem] p-10 glass border flex flex-col transition-all duration-500 ${plan.popular
+                  ? "border-[#D4AF37]/50 shadow-[0_0_50px_rgba(212,175,55,0.15)] scale-105 z-10"
                   : "border-white/10 hover:border-[#D4AF37]/30"
-              } ${isActive ? "border-[#D4AF37] ring-2 ring-[#D4AF37]/20 shadow-[0_0_30px_rgba(212,175,55,0.2)]" : ""}`}
+                } ${isActive ? "border-[#D4AF37] ring-2 ring-[#D4AF37]/20 shadow-[0_0_30px_rgba(212,175,55,0.2)]" : ""}`}
             >
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2">
@@ -78,7 +77,7 @@ export default function Membresias({ onPlanSelect, currentPlan }: MembresiasProp
                 </div>
                 <h3 className="text-3xl font-black mb-3 text-white">{plan.name}</h3>
                 <div className="flex items-baseline justify-center gap-2">
-                  <span className="text-5xl font-black text-white">$ {plan.price}</span>
+                  <span className="text-5xl font-black text-white">S/ {plan.price}</span>
                   <span className="text-sm text-gray-500 font-bold uppercase tracking-widest">/ mes</span>
                 </div>
               </div>
@@ -97,13 +96,12 @@ export default function Membresias({ onPlanSelect, currentPlan }: MembresiasProp
               <button
                 onClick={() => !isActive && handleAcquire(plan)}
                 disabled={isActive}
-                className={`w-full py-5 rounded-2xl text-xs font-black tracking-[0.2em] transition-all duration-500 ${
-                  isActive
+                className={`w-full py-5 rounded-2xl text-xs font-black tracking-[0.2em] transition-all duration-500 ${isActive
                     ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 cursor-default"
                     : plan.popular
                       ? "bg-[#D4AF37] hover:bg-[#FFD700] text-black shadow-xl shadow-[#D4AF37]/20"
                       : "bg-white/5 hover:bg-white/10 text-white border border-white/5"
-                }`}
+                  }`}
               >
                 {acquiring === plan.id ? (
                   <div className="flex items-center justify-center gap-3">

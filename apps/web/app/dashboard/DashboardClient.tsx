@@ -236,10 +236,18 @@ export default function DashboardClient({ userName, userEmail }: DashboardClient
     }
     const overlapping = reservations.find(r => 
       r.status === "Confirmada" && 
-      (r.classItem.id === item.id || (r.classItem.name === item.name && r.classItem.date === item.date && r.classItem.time === item.time))
+      (
+        r.classItem.id === item.id || 
+        (r.classItem.name === item.name && r.classItem.date === item.date && r.classItem.time === item.time) ||
+        checkOverlap(r.classItem, item)
+      )
     );
     if (overlapping) {
-      setError(`⚠️ Conflicto: Ya tienes '${overlapping.classItem.name}' reservado.`);
+      const isSame = overlapping.classItem.name === item.name && overlapping.classItem.time === item.time;
+      setError(isSame 
+        ? `⚠️ Ya tienes '${item.name}' reservado.` 
+        : `⚠️ Conflicto horario con '${overlapping.classItem.name}' (${overlapping.classItem.time}).`
+      );
       setTimeout(() => setError(null), 4000);
       return;
     }
