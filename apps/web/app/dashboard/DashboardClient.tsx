@@ -11,7 +11,8 @@ import MiPerfil from "./components/MiPerfil";
 import { UsuariosSection } from "./components/UsuariosSection";
 import HeroBanner from "./components/HeroBanner";
 import AICoach from "./ai-coach";
-import { Menu, Zap, Target, Users, TrendingUp, Sparkles, ShieldAlert } from "lucide-react";
+import { Menu, Zap, Target, Users, TrendingUp, Sparkles, ShieldAlert, LifeBuoy } from "lucide-react";
+import SupportForm from "./components/SupportForm";
 import { signOut } from "next-auth/react";
 import { UserItem } from "./components/data";
 
@@ -72,6 +73,13 @@ export default function DashboardClient({ userName, userEmail }: DashboardClient
         if (me) {
           setCurrentPlan(me.plan);
           if (me.clasesDisponibles !== undefined) setAssignedClasses(me.clasesDisponibles);
+          if (me.reservations) {
+            try {
+              setReservations(JSON.parse(me.reservations));
+            } catch (e) {
+              console.error("Error cargando reservas:", e);
+            }
+          }
         }
       })
       .catch(err => console.error("Error fetching users:", err));
@@ -109,15 +117,39 @@ export default function DashboardClient({ userName, userEmail }: DashboardClient
     }
     const newReservation: Reservation = {
       id: Date.now(),
-      classItem: item,
+      classItem: { ...item, spots: item.spots - 1 },
       status: "Confirmada",
       reservedAt: new Date().toISOString().split("T")[0]!
     };
-    setReservations((prev: Reservation[]) => [newReservation, ...prev]);
+    
+    const updatedReservations = [newReservation, ...reservations];
+    setReservations(updatedReservations);
+    
+    // Guardamos en la base de datos vía Proxy
+    fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: userEmail, reservations: JSON.stringify(updatedReservations) })
+    });
+
+    item.spots = item.spots - 1; 
   };
 
   const handleCancel = (id: number) => {
-    setReservations((prev: Reservation[]) => prev.map(r => r.id === id ? { ...r, status: "Cancelada" } : r));
+    const updated = reservations.map(r => r.id === id ? { ...r, status: "Cancelada" as const } : r);
+    setReservations(updated);
+
+    const reservation = reservations.find(r => r.id === id);
+    if (reservation && reservation.status === "Confirmada") {
+      reservation.classItem.spots = Math.min(reservation.classItem.totalSpots, reservation.classItem.spots + 1);
+    }
+
+    // Sincronizamos con la base de datos
+    fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: userEmail, reservations: JSON.stringify(updated) })
+    });
   };
 
   const renderSection = () => {
@@ -164,12 +196,23 @@ export default function DashboardClient({ userName, userEmail }: DashboardClient
           <MisReservas reservations={historyOnly} onCancel={() => {}} hideUpcoming userName={userName} />
         ) : <div className="p-10 text-center text-gray-500 font-medium">No hay historial disponible.</div>;
       }
+      case "soporte":      
+        return (
+          <div className="max-w-4xl mx-auto">
+            <div className="mb-12 text-center">
+              <p className="text-[#D4AF37] text-xs font-black uppercase tracking-[0.3em] mb-4">¿Necesitas ayuda?</p>
+              <h2 className="text-5xl font-black tracking-tighter text-white mb-6">CENTRO DE <span className="text-[#D4AF37]">ASISTENCIA</span></h2>
+              <p className="text-gray-500 font-medium max-w-xl mx-auto">Reporta cualquier falla técnica o solicita ayuda con tu cuenta. Nuestro equipo responderá directamente a tu correo.</p>
+            </div>
+            <SupportForm />
+          </div>
+        );
       default:             return <ClassesSection reservations={reservations} onReserve={handleReserve} />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0B0B] text-white selection:bg-[#D4AF37]/30">
+    <div className="min-h-screen bg-[#161616] text-white selection:bg-[#D4AF37]/30">
       <div className="fixed inset-0 bg-grid opacity-[0.03] pointer-events-none" />
       <div className="fixed top-0 left-0 right-0 h-[600px] bg-gradient-to-b from-[#D4AF37]/5 to-transparent pointer-events-none" />
 
@@ -248,7 +291,7 @@ export default function DashboardClient({ userName, userEmail }: DashboardClient
             {[
               { label: "Clases Libres", value: maxClasses === 999 ? "∞" : classesLeft, icon: <Zap size={18} />, color: "text-[#D4AF37]" },
               { label: "Rango Actual", value: `LEVEL ${userLevel}`, icon: <Target size={18} />, color: "text-[#D4AF37]" },
-              { label: "Membresía", value: "Activa", icon: <Users size={18} />, color: "text-emerald-400" },
+              { label: "Plan Actual", value: currentPlan || "Sin Plan", icon: <Users size={18} />, color: "text-emerald-400" },
               { label: "Progreso", value: `${completedClasses}/6`, icon: <TrendingUp size={18} />, color: "text-[#D4AF37]" },
             ].map((m, i) => (
               <motion.div
