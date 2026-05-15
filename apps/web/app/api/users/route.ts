@@ -34,6 +34,25 @@ export async function POST(req: Request) {
       update: formattedData,
       create: formattedData,
     });
+
+    // SI ESTAMOS EN LOCAL, SINCRONIZAMOS CON RENDER AUTOMÁTICAMENTE
+    if (process.env.NODE_ENV === "development") {
+      try {
+        // Pon aquí tu URL real de Render
+        const RENDER_URL = "https://fightlab.onrender.com"; 
+        await fetch(`${RENDER_URL}/api/sync/user`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user: formattedData,
+            secret: process.env.NEXTAUTH_SECRET
+          }),
+        });
+        console.log(">>> Sincronizado con Render correctamente");
+      } catch (syncError) {
+        console.error(">>> Error en el puente de sincronización:", syncError);
+      }
+    }
     
     return NextResponse.json({ success: true, user });
   } catch (e) {

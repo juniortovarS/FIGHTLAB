@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:local": "prisma db push --schema=prisma/schema.local.prisma && prisma generate --schema=prisma/schema.local.prisma && next dev",
-    "build": "prisma generate && prisma db push --accept-data-loss && next build",
+    "build": "prisma generate && prisma db push --accept-data-loss && npx prisma db seed && next build",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate"
