@@ -29,7 +29,7 @@ export async function POST(req: Request) {
         userInDb = await prisma.user.findUnique({ where: { email: cleanEmail } });
       }
 
-      // AUTO-REGISTRO PARA ADMINS (Si no existen en la base de datos de Render)
+      // AUTO-REGISTRO PARA ADMINS
       if (!userInDb && isAdmin) {
         const adminData = {
           email: cleanEmail,
@@ -38,7 +38,6 @@ export async function POST(req: Request) {
           status: 'Activo',
           joinDate: new Date()
         };
-
         if (isLocal) {
           const res = await fetch(`${RENDER_URL}/api/db-proxy`, {
             method: "POST",
@@ -66,23 +65,29 @@ export async function POST(req: Request) {
         await prisma.user.update({ where: { email: cleanEmail }, data: { otpCode: generatedCode } });
       }
 
-      // ENVIAR CORREO (USANDO LA LLAVE DEL .ENV)
-      const resendKey = process.env.RESEND_API_KEY || "re_9J3Dw1Qr_4pFE2GUTfE2NuZYTJgAToc4S";
-      
-      await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          from: 'FightLab <onboarding@resend.dev>',
-          to: cleanEmail,
-          subject: `${generatedCode} es tu código de acceso`,
-          html: `<div style="background:#000;color:#fff;padding:40px;border:1px solid #D4AF37;text-align:center;border-radius:20px;font-family:sans-serif;">
-                  <h1 style="color:#D4AF37;margin-bottom:20px;">FIGHTLAB</h1>
-                  <p style="font-size:16px;">Tu código de acceso es:</p>
-                  <h2 style="font-size:48px;color:#D4AF37;letter-spacing:10px;margin:20px 0;">${generatedCode}</h2>
-                </div>`
-        })
-      });
+      // ENVÍO POR BREVO (API HTTP - No bloqueado por Render)
+      const brevoKey = process.env.BREVO_API_KEY;
+      if (brevoKey) {
+        await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'api-key': brevoKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            sender: { name: "FightLab", email: "juniortovar601@gmail.com" },
+            to: [{ email: cleanEmail }],
+            subject: `${generatedCode} es tu código de acceso`,
+            htmlContent: `
+              <div style="background:#000;color:#fff;padding:40px;text-align:center;font-family:sans-serif;border:1px solid #D4AF37;border-radius:20px;">
+                <h1 style="color:#D4AF37;margin-bottom:20px;">FIGHTLAB</h1>
+                <p>Tu código de acceso es:</p>
+                <h2 style="font-size:48px;color:#D4AF37;letter-spacing:10px;margin:20px 0;">${generatedCode}</h2>
+                <p style="color:#666;font-size:12px;margin-top:20px;">Si no solicitaste este código, ignora este correo.</p>
+              </div>`
+          })
+        });
+      }
 
       return NextResponse.json({ success: true });
     }
