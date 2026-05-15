@@ -15,8 +15,15 @@ export async function GET() {
           secret: process.env.NEXTAUTH_SECRET
         }),
       });
-      const users = await res.json();
-      return NextResponse.json(users || []);
+      const data = await res.json();
+      
+      // La proxy puede devolver el array directamente o un objeto con error
+      if (data && data.error) {
+        console.error("ERROR PROXY GET_USERS:", data.error);
+        return NextResponse.json([]);
+      }
+      
+      return NextResponse.json(Array.isArray(data) ? data : []);
     }
 
     // SI ESTAMOS EN RENDER, USAMOS PRISMA DIRECTAMENTE
@@ -53,8 +60,13 @@ export async function POST(req: Request) {
           secret: process.env.NEXTAUTH_SECRET
         }),
       });
-      const user = await res.json();
-      return NextResponse.json({ success: true, user });
+      const proxyData = await res.json();
+      
+      if (proxyData && proxyData.error) {
+        return NextResponse.json({ success: false, error: proxyData.error }, { status: 500 });
+      }
+      
+      return NextResponse.json({ success: true, user: proxyData });
     }
 
     const user = await prisma.user.upsert({

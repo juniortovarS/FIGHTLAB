@@ -7,16 +7,17 @@ import ClassCard from "./ClassCard";
 import BookingModal from "./BookingModal";
 
 interface ClassesSectionProps {
+  classes: ClassItem[];
   reservations: Reservation[];
   onReserve: (item: ClassItem) => void;
 }
 
-export default function ClassesSection({ reservations, onReserve }: ClassesSectionProps) {
+export default function ClassesSection({ classes, reservations, onReserve }: ClassesSectionProps) {
   const [sedeFilter, setSedeFilter] = useState<Sede | "Todas">("Todas");
   const [search, setSearch] = useState("");
   const [selectedClass, setSelectedClass] = useState<ClassItem | null>(null);
 
-  const filteredClasses = mockClasses.filter(c => {
+  const filteredClasses = classes.filter(c => {
     const matchesSede = sedeFilter === "Todas" || c.sede === sedeFilter;
     const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.coach.toLowerCase().includes(search.toLowerCase());

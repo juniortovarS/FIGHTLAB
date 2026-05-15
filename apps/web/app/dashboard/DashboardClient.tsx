@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { NavSection, ClassItem, Reservation, mockReservations, checkOverlap } from "./components/data";
+import { NavSection, ClassItem, Reservation, mockReservations, mockClasses, checkOverlap } from "./components/data";
 import Sidebar from "./components/Sidebar";
 import ClassesSection from "./components/ClassesSection";
 import MisReservas from "./components/MisReservas";
@@ -64,25 +64,72 @@ export default function DashboardClient({ userName, userEmail }: DashboardClient
   const monthsActive = 1; 
   const userLevel = Math.floor(completedClasses / 6) + 1;
 
+  // Calculamos los cupos reales basados en las reservas de TODOS los usuarios
+  const classesWithActualSpots = useMemo(() => {
+    // Clonamos mockClasses para no mutar el original
+    const classes = mockClasses.map(c => ({ ...c }));
+    
+    users.forEach(u => {
+      if (u.reservations) {
+        try {
+          const userRes: Reservation[] = typeof u.reservations === "string" ? JSON.parse(u.reservations) : u.reservations;
+          if (Array.isArray(userRes)) {
+            userRes.forEach(r => {
+              if (r.status === "Confirmada") {
+                const target = classes.find(c => c.id === r.classItem.id);
+                if (target) {
+                  target.spots = Math.max(0, target.spots - 1);
+                }
+              }
+            });
+          }
+        } catch (e) {
+          // Ignorar errores de parseo
+        }
+      }
+    });
+    
+    return classes;
+  }, [users]);
+
   useEffect(() => {
+    if (!userEmail) return;
+    
+    console.log(">>> DASHBOARD: Iniciando fetch de usuarios para:", userEmail);
+    
     fetch("/api/users")
       .then(res => res.json())
       .then(data => {
-        setUsers(data);
-        const me = data.find((u: any) => u.email === userEmail);
+        console.log(">>> DASHBOARD: Datos recibidos:", data);
+        
+        // Manejar el caso donde data puede venir dentro de una propiedad o ser el array directo
+        const usersList = Array.isArray(data) ? data : (data.users || []);
+        setUsers(usersList);
+        
+        const me = usersList.find((u: any) => u.email.toLowerCase() === userEmail.toLowerCase());
+        
         if (me) {
-          setCurrentPlan(me.plan);
+          console.log(">>> DASHBOARD: Usuario encontrado:", me);
+          setCurrentPlan(me.plan || "Regular");
           if (me.clasesDisponibles !== undefined) setAssignedClasses(me.clasesDisponibles);
-          if (me.reservations) {
+          
+          if (me.reservations && me.reservations !== "null") {
             try {
-              setReservations(JSON.parse(me.reservations));
+              const parsed = typeof me.reservations === "string" ? JSON.parse(me.reservations) : me.reservations;
+              console.log(">>> DASHBOARD: Reservas parseadas:", parsed);
+              setReservations(Array.isArray(parsed) ? parsed : []);
             } catch (e) {
               console.error("Error cargando reservas:", e);
+              setReservations([]);
             }
           }
+        } else {
+          console.warn(">>> DASHBOARD: No se encontró al usuario en la lista:", userEmail);
         }
       })
-      .catch(err => console.error("Error fetching users:", err));
+      .catch(err => {
+        console.error(">>> DASHBOARD: Error fetching users:", err);
+      });
   }, [userEmail]);
 
   const handleUpdateUser = async (updatedUser: UserItem) => {
@@ -125,14 +172,35 @@ export default function DashboardClient({ userName, userEmail }: DashboardClient
     const updatedReservations = [newReservation, ...reservations];
     setReservations(updatedReservations);
     
+    // Actualizamos también la lista local de usuarios para mantener consistencia
+    setUsers(prev => prev.map(u => 
+      u.email.toLowerCase() === userEmail.toLowerCase() 
+        ? { ...u, reservations: JSON.stringify(updatedReservations) } 
+        : u
+    ));
+    
     // Guardamos en la base de datos vía Proxy
+    const payload = { 
+      email: userEmail, 
+      name: userName, // Importante para el upsert si el usuario no existe
+      reservations: JSON.stringify(updatedReservations) 
+    };
+    
+    console.log(">>> DASHBOARD: Guardando reserva...", payload);
+    
     fetch("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: userEmail, reservations: JSON.stringify(updatedReservations) })
+      body: JSON.stringify(payload)
+    }).then(r => r.json()).then(res => {
+      console.log(">>> DASHBOARD: Respuesta guardado:", res);
+      if(!res.success) {
+        alert("⚠️ ERROR AL GUARDAR EN NUBE: " + res.error);
+        // Revertimos el estado local si falló el guardado? 
+        // Por ahora solo avisamos.
+      }
     });
 
-    item.spots = item.spots - 1; 
   };
 
   const handleCancel = (id: number) => {
@@ -145,10 +213,22 @@ export default function DashboardClient({ userName, userEmail }: DashboardClient
     }
 
     // Sincronizamos con la base de datos
+    const payload = { 
+      email: userEmail, 
+      name: userName,
+      reservations: JSON.stringify(updated) 
+    };
+
+    setUsers(prev => prev.map(u => 
+      u.email.toLowerCase() === userEmail.toLowerCase() 
+        ? { ...u, reservations: JSON.stringify(updated) } 
+        : u
+    ));
+
     fetch("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: userEmail, reservations: JSON.stringify(updated) })
+      body: JSON.stringify(payload)
     });
   };
 
@@ -165,7 +245,7 @@ export default function DashboardClient({ userName, userEmail }: DashboardClient
         );
       case "usuarios":      
         return isAdmin ? <UsuariosSection users={users} onUpdateUser={handleUpdateUser} onAddUser={handleAddUser} /> : null;
-      case "reservar":     return <ClassesSection reservations={reservations} onReserve={handleReserve} />;
+      case "reservar":     return <ClassesSection classes={classesWithActualSpots} reservations={reservations} onReserve={handleReserve} />;
       case "mis-reservas": return (
         <MisReservas 
           reservations={reservations} 
@@ -207,7 +287,7 @@ export default function DashboardClient({ userName, userEmail }: DashboardClient
             <SupportForm />
           </div>
         );
-      default:             return <ClassesSection reservations={reservations} onReserve={handleReserve} />;
+      default:             return <ClassesSection classes={classesWithActualSpots} reservations={reservations} onReserve={handleReserve} />;
     }
   };
 
