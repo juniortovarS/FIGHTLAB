@@ -3,8 +3,8 @@ import "./globals.css";
 import LenisProvider from "./providers/LenisProvider";
 
 export const metadata: Metadata = {
-  title: "FightLab — Combat Gym Platform",
-  description: "La plataforma premium de artes marciales y fitness tecnológico",
+  title: "FIGHTLAB — Rise above yourself",
+  description: "The premium management platform for combat sports.",
   icons: { icon: "/fightlab.svg" },
 };
 
