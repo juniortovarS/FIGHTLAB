@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   try {
-    const { action, data, secret, email } = await req.json();
+    const body = await req.json();
+    const { action, data, secret, email, id } = body;
 
     if (secret !== process.env.NEXTAUTH_SECRET) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -32,6 +33,14 @@ export async function POST(req: Request) {
         where: { email: data.email },
         update: data,
         create: data,
+      });
+      return NextResponse.json(user);
+    }
+
+    if (action === "UPDATE_USER_BY_ID") {
+      const user = await prisma.user.update({
+        where: { id: parseInt(id) },
+        data: data,
       });
       return NextResponse.json(user);
     }

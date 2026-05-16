@@ -38,6 +38,7 @@ export interface UserItem {
   planActiveDate?: string;
   planExpiryDate?: string;
   clasesDisponibles?: number;
+  phone?: string;
   reservations?: string;
 }
 

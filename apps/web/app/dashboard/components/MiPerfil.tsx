@@ -1,35 +1,95 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { User, Mail, Phone, ShieldCheck, Edit3, Save, X, CreditCard, Sparkles } from "lucide-react";
 
 interface MiPerfilProps {
   userName: string;
   userEmail: string;
+  userPhone?: string;
   currentPlan: string;
   stats: {
     completed: number;
     disciplines: number;
     days: number;
     remaining: number;
+    expiryDate?: string | null;
   };
+  onUpdate?: (data: { name: string; email: string; phone: string }) => void;
 }
 
-export default function MiPerfil({ userName, userEmail, currentPlan, stats }: MiPerfilProps) {
+export default function MiPerfil({ userName, userEmail, userPhone, currentPlan, stats, onUpdate }: MiPerfilProps) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(userName || "FightLab User");
-  const [phone, setPhone] = useState("+52 55 1234 5678");
+  const [email, setEmail] = useState(userEmail || "");
+  const [phone, setPhone] = useState(userPhone || "+51 ");
   const [saved, setSaved] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
+  const [emailError, setEmailError] = useState("");
 
-  const handleSave = () => {
-    setSaved(true);
-    setEditing(false);
-    setTimeout(() => setSaved(false), 2500);
+  // Sincronizar estado local con props cuando cambien (ej. después de fetch o save)
+  useEffect(() => {
+    if (!editing) {
+      setName(userName);
+      setEmail(userEmail);
+      if (userPhone) setPhone(userPhone);
+    }
+  }, [userName, userEmail, userPhone, editing]);
+
+  const handlePhoneChange = (val: string) => {
+    // Solo permitir +51 seguido de números
+    let digits = val.replace(/\D/g, "");
+    // Si empieza con 51, lo quitamos para procesar solo los 9 dígitos
+    if (digits.startsWith("51")) {
+      digits = digits.substring(2);
+    }
+    // Limitar a 9 dígitos
+    const cleanDigits = digits.substring(0, 9);
+    setPhone("+51 " + cleanDigits);
+    
+    if (cleanDigits.length < 9 && cleanDigits.length > 0) {
+      setPhoneError("Faltan dígitos (deben ser 9)");
+    } else {
+      setPhoneError("");
+    }
+  };
+
+  const handleSave = async () => {
+    const cleanDigits = phone.replace(/\D/g, "");
+    // Si empieza con 51, quitamos el prefijo para validar el resto
+    let onlyDigits = cleanDigits;
+    if (cleanDigits.startsWith("51")) {
+      onlyDigits = cleanDigits.substring(2);
+    }
+
+    // El teléfono es opcional, pero si se pone algo, debe tener 9 dígitos
+    if (onlyDigits.length > 0 && onlyDigits.length !== 9) {
+      setPhoneError("El teléfono debe tener 9 dígitos (o dejarlo vacío)");
+      return;
+    }
+
+    setEmailError("");
+    setPhoneError("");
+    try {
+      if (onUpdate) {
+        await onUpdate({ name, email, phone });
+      }
+      setSaved(true);
+      setEditing(false);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err: any) {
+      setEmailError(err.message || "Error al actualizar");
+    }
   };
 
   const statItems = [
     { label: "Victorias (Clases)", value: stats.completed, color: "text-[#D4AF37]", glow: "shadow-[0_0_20px_rgba(212,175,55,0.2)]" },
-    { label: "Días de Garra", value: `${stats.days} ${stats.days === 1 ? "día" : "días"}`, color: "text-white", glow: "shadow-[0_0_20px_rgba(255,255,255,0.05)]" },
+    { 
+      label: "Tu membresía acabará", 
+      value: stats.expiryDate ? new Date(stats.expiryDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : "S/D", 
+      color: "text-white", 
+      glow: "shadow-[0_0_20px_rgba(255,255,255,0.05)]" 
+    },
     { label: "Disciplinas", value: stats.disciplines, color: "text-[#D4AF37]", glow: "shadow-[0_0_20px_rgba(212,175,55,0.2)]" },
     { label: "Clases restantes", value: stats.remaining === 999 ? "∞" : stats.remaining, color: "text-white", glow: "shadow-[0_0_20px_rgba(255,255,255,0.05)]" },
   ];
@@ -95,8 +155,8 @@ export default function MiPerfil({ userName, userEmail, currentPlan, stats }: Mi
           <div className="grid gap-6 md:grid-cols-2">
             {[
               { label: "Nombre de Guerrero", value: name, icon: <User size={16} />, onChange: setName, editable: true },
-              { label: "Email de Contacto", value: userEmail, icon: <Mail size={16} />, editable: false },
-              { label: "Teléfono", value: phone, icon: <Phone size={16} />, onChange: setPhone, editable: true },
+              { label: "Email de Contacto", value: email, icon: <Mail size={16} />, onChange: setEmail, editable: true, error: emailError },
+              { label: "Teléfono (Perú)", value: phone, icon: <Phone size={16} />, onChange: handlePhoneChange, editable: true, error: phoneError },
               { label: "Plan Actual", value: currentPlan, icon: <CreditCard size={16} />, editable: false },
             ].map((field) => (
               <div key={field.label} className="space-y-2">
@@ -108,14 +168,23 @@ export default function MiPerfil({ userName, userEmail, currentPlan, stats }: Mi
                     {field.icon}
                   </div>
                   {editing && field.editable ? (
-                    <input 
-                      type="text" 
-                      value={field.value}
-                      onChange={(e) => field.onChange?.(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3.5 bg-white/[0.03] border border-white/10 rounded-2xl text-sm focus:outline-none focus:border-[#D4AF37]/50 transition-all text-white font-medium"
-                    />
+                    <div className="flex flex-col gap-1">
+                      <input 
+                        type="text" 
+                        value={field.value}
+                        onChange={(e) => field.onChange?.(e.target.value)}
+                        className={`w-full pl-11 pr-4 py-3.5 bg-white/[0.03] border rounded-2xl text-sm focus:outline-none transition-all text-white font-medium ${
+                          (field as any).error ? "border-red-500/50 focus:border-red-500" : "border-white/10 focus:border-[#D4AF37]/50"
+                        }`}
+                      />
+                      {(field as any).error && (
+                        <span className="text-[9px] text-red-500 font-bold uppercase tracking-wider ml-1">
+                          {(field as any).error}
+                        </span>
+                      )}
+                    </div>
                   ) : (
-                    <div className="w-full pl-11 pr-4 py-3.5 bg-white/[0.02] border border-white/5 rounded-2xl text-sm text-gray-300 font-medium">
+                    <div className={`w-full pl-11 pr-4 py-3.5 bg-white/[0.02] border border-white/5 rounded-2xl text-sm text-gray-300 font-medium ${!field.editable ? "opacity-60 cursor-not-allowed" : ""}`}>
                       {field.value}
                     </div>
                   )}

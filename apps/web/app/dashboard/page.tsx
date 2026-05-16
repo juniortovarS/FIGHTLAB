@@ -9,6 +9,7 @@ export default async function Dashboard() {
 
   const userName = session.user?.name ?? session.user?.email?.split("@")[0] ?? "Atleta";
   const userEmail = session.user?.email ?? "";
+  const userId = (session.user as any).id;
 
-  return <DashboardClient userName={userName} userEmail={userEmail} />;
+  return <DashboardClient userName={userName} userEmail={userEmail} userId={userId} />;
 }

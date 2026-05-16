@@ -20,6 +20,7 @@ model User {
   planExpiryDate  DateTime?
   clasesDisponibles Int    @default(0)
   otpCode         String?
+  phone           String?
   reservations    String?  @default("[]")
 
   @@map("users")

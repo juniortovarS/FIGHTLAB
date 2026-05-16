@@ -6,11 +6,13 @@ import { ClassItem } from "./data";
 interface ClassCardProps {
   item: ClassItem;
   onReserve: (item: ClassItem) => void;
+  onViewClass?: (item: ClassItem) => void;
   index?: number;
   isReserved?: boolean;
+  isAdmin?: boolean;
 }
 
-export default function ClassCard({ item, onReserve, index = 0, isReserved = false }: ClassCardProps) {
+export default function ClassCard({ item, onReserve, onViewClass, index = 0, isReserved = false, isAdmin = false }: ClassCardProps) {
   const isFull = item.spots === 0;
 
   return (
@@ -95,6 +97,16 @@ export default function ClassCard({ item, onReserve, index = 0, isReserved = fal
           {isFull ? "Full" : "Reservar"}
           {!isFull && <ArrowRight size={14} className="md:size-[18px] group-hover:translate-x-1 md:group-hover:translate-x-2 transition-transform duration-300" />}
         </button>
+
+        {isAdmin && (
+          <button
+            onClick={() => onViewClass?.(item)}
+            className="w-full mt-3 py-3 md:py-4 rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest bg-white/5 hover:bg-[#D4AF37]/10 border border-white/5 hover:border-[#D4AF37]/30 text-gray-400 hover:text-[#D4AF37] transition-all flex items-center justify-center gap-2 group/admin"
+          >
+            <Users size={14} className="md:size-4" />
+            Visualizar Clase
+          </button>
+        )}
       </div>
 
     </motion.div>

@@ -1,21 +1,25 @@
 "use client";
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ClassItem, Reservation, Sede } from "./data";
-import { Search, MapPin, CheckCircle2, Users, Calendar, Clock } from "lucide-react";
+import { ClassItem, Reservation, Sede, UserItem } from "./data";
+import { Search, MapPin, CheckCircle2, Users, Calendar, Clock, User as UserIcon, ChevronRight } from "lucide-react";
 import ClassCard from "./ClassCard";
 import BookingModal from "./BookingModal";
+import AdminClassDetailsModal from "./AdminClassDetailsModal";
 
 interface ClassesSectionProps {
   classes: ClassItem[];
   reservations: Reservation[];
+  users: UserItem[];
+  isAdmin: boolean;
   onReserve: (item: ClassItem) => void;
 }
 
-export default function ClassesSection({ classes, reservations, onReserve }: ClassesSectionProps) {
+export default function ClassesSection({ classes, reservations, users, isAdmin, onReserve }: ClassesSectionProps) {
   const [sedeFilter, setSedeFilter] = useState<Sede | "Todas">("Todas");
   const [search, setSearch] = useState("");
   const [selectedClass, setSelectedClass] = useState<ClassItem | null>(null);
+  const [viewingClass, setViewingClass] = useState<ClassItem | null>(null);
 
   // Generar lista de los próximos 7 días para el filtro
   const availableDates = useMemo(() => {
@@ -75,12 +79,12 @@ export default function ClassesSection({ classes, reservations, onReserve }: Cla
       <div className="flex flex-col gap-8">
         {/* Day Selector */}
         <div className="flex items-center gap-3 overflow-x-auto pb-4 scrollbar-hide">
-          <div className="p-1.5 bg-white/5 border border-white/5 rounded-2xl flex items-center gap-2">
+          <div className="p-1.5 bg-white/5 border border-white/5 rounded-2xl flex items-center gap-1.5 md:gap-2 min-w-max">
             {availableDates.map((date) => (
               <button
                 key={date}
                 onClick={() => setDateFilter(date)}
-                className={`px-6 py-2.5 rounded-xl text-[10px] font-black transition-all tracking-[0.2em] whitespace-nowrap ${
+                className={`px-4 md:px-6 py-2 md:py-2.5 rounded-xl text-[9px] md:text-[10px] font-black transition-all tracking-[0.1em] md:tracking-[0.2em] whitespace-nowrap ${
                   dateFilter === date
                     ? "bg-[#D4AF37] text-black shadow-lg shadow-[#D4AF37]/20"
                     : "text-gray-500 hover:text-white hover:bg-white/5"
@@ -135,7 +139,9 @@ export default function ClassesSection({ classes, reservations, onReserve }: Cla
                 item={item}
                 index={i}
                 onReserve={(clase) => setSelectedClass(clase)}
+                onViewClass={(clase) => setViewingClass(clase)}
                 isReserved={isReserved}
+                isAdmin={isAdmin}
               />
 
               <AnimatePresence>
@@ -149,28 +155,28 @@ export default function ClassesSection({ classes, reservations, onReserve }: Cla
                     <div className="absolute inset-0 bg-black/85 backdrop-blur-[8px]" />
                     <div className="absolute inset-0 border-[3px] border-[#D4AF37] rounded-[2.5rem] shadow-[inset_0_0_80px_rgba(212,175,55,0.4)]" />
 
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
                       <motion.div
                         initial={{ y: 20 }}
                         animate={{ y: 0 }}
-                        className="bg-[#D4AF37] text-black px-10 py-4 rounded-full shadow-[0_0_50px_rgba(212,175,55,0.6)] flex items-center gap-3 border-2 border-white/20"
+                        className="bg-[#D4AF37] text-black px-6 md:px-10 py-2.5 md:py-4 rounded-full shadow-[0_0_30px_rgba(212,175,55,0.4)] flex items-center gap-2 md:gap-3 border-2 border-white/20"
                       >
-                        <CheckCircle2 size={24} strokeWidth={3} />
-                        <span className="text-sm font-black uppercase tracking-[0.2em]">Clase Reservada</span>
+                        <CheckCircle2 className="w-4 h-4 md:w-6 md:h-6" strokeWidth={3} />
+                        <span className="text-[9px] md:text-sm font-black uppercase tracking-[0.15em] md:tracking-[0.2em]">Clase Reservada</span>
                       </motion.div>
 
                       {/* Contador de cupos dinámico */}
-                      <div className="mt-8 flex flex-col items-center gap-2">
-                        <div className="flex items-center gap-3 text-[#D4AF37]">
-                          <Users size={16} />
-                          <span className="text-xs font-black uppercase tracking-[0.3em]">Cupos disponibles</span>
+                      <div className="mt-4 md:mt-8 flex flex-col items-center gap-1 md:gap-2">
+                        <div className="flex items-center gap-2 md:gap-3 text-[#D4AF37]">
+                          <Users className="w-3 h-3 md:w-4 md:h-4" />
+                          <span className="text-[8px] md:text-xs font-black uppercase tracking-[0.2em] md:tracking-[0.3em]">Cupos disponibles</span>
                         </div>
-                        <p className="text-4xl font-black text-white tracking-tighter">
-                          {item.spots}<span className="text-[#D4AF37]/50 text-xl"> / {item.totalSpots}</span>
+                        <p className="text-2xl md:text-4xl font-black text-white tracking-tighter">
+                          {item.spots}<span className="text-[#D4AF37]/50 text-base md:text-xl"> / {item.totalSpots}</span>
                         </p>
                       </div>
 
-                      <p className="text-[#D4AF37] text-[10px] font-black uppercase tracking-[0.5em] mt-8 opacity-40 italic">FightLab</p>
+                      <p className="text-[#D4AF37] text-[8px] md:text-[10px] font-black uppercase tracking-[0.4em] md:tracking-[0.5em] mt-4 md:mt-8 opacity-40 italic">FightLab</p>
                     </div>
                   </motion.div>
                 )}
@@ -197,6 +203,11 @@ export default function ClassesSection({ classes, reservations, onReserve }: Cla
           onReserve(item);
           setSelectedClass(null);
         }}
+      />
+      <AdminClassDetailsModal
+        item={viewingClass}
+        users={users}
+        onClose={() => setViewingClass(null)}
       />
     </div>
   );

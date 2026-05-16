@@ -8,10 +8,11 @@ interface HeroBannerProps {
   userEmail: string;
   classesLeft: number;
   daysActive: number;
+  expiryDate?: string | null;
   onNav: (s: NavSection) => void;
 }
 
-export default function HeroBanner({ userName, userEmail, classesLeft, daysActive, onNav }: HeroBannerProps) {
+export default function HeroBanner({ userName, userEmail, classesLeft, daysActive, expiryDate, onNav }: HeroBannerProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -118,7 +119,7 @@ export default function HeroBanner({ userName, userEmail, classesLeft, daysActiv
                   color: "#D4AF37",
                   border: "1px solid rgba(212,175,55,0.25)",
                 }}>
-                <Trophy size={10} /> PRO MEMBER
+                <Trophy size={10} /> FIGHTER
               </span>
               <span className="text-xs" style={{ color: "#374151" }}>Membresía activa</span>
             </motion.div>
@@ -130,7 +131,11 @@ export default function HeroBanner({ userName, userEmail, classesLeft, daysActiv
           {/* Stats */}
           {[
             { label: "Clases restantes", value: classesLeft, icon: <Flame size={14} /> },
-            { label: "Días activo", value: daysActive, icon: <Zap size={14} /> },
+            {
+              label: "Tu membresía acabará",
+              value: expiryDate ? new Date(expiryDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : "S/D",
+              icon: <Zap size={14} />
+            },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
